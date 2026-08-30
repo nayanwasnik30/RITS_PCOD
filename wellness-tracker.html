@@ -11,6 +11,7 @@
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect fill='%23C85F87' width='100' height='100' rx='20'/><text x='50' y='65' font-size='50' font-family='serif' fill='white' text-anchor='middle'>P</text></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,500&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="js/chart.umd.min.js"></script>
 <script>if(typeof Chart==='undefined')window.Chart=class{constructor(){}destroy(){}};</script>
 <style>
@@ -232,9 +233,13 @@ main{padding:16px 14px 8px; max-width:640px; margin:0 auto;}
     <div class="login-mark">P</div>
     <h1 id="loginTitle">Welcome to Pulse</h1>
     <p id="loginMessage">Sign in to start tracking your daily wellness.</p>
-    <label for="loginName">Your name</label>
-    <input id="loginName" type="text" autocomplete="name" placeholder="e.g. Riya" required maxlength="50">
-    <button type="submit" id="loginButton">Continue</button>
+    <div id="authError" style="display:none;background:#FBE7E2;color:#C6576E;padding:8px 12px;border-radius:8px;font-size:12px;margin-bottom:12px;"></div>
+    <label for="loginEmail">Email</label>
+    <input id="loginEmail" type="email" autocomplete="email" placeholder="you@gmail.com" required>
+    <label for="loginPassword">Password</label>
+    <input id="loginPassword" type="password" autocomplete="current-password" placeholder="••••••••" required minlength="6">
+    <button type="submit" id="loginButton">Sign in</button>
+    <button type="button" id="signUpBtn" style="width:100%;margin-top:8px;border:1px solid #ddd;background:#fff;color:#3F2734;border-radius:10px;padding:12px;font:600 14px 'Inter',sans-serif;cursor:pointer;">Create account</button>
     <p class="login-note">Your wellness data stays in this browser on this device.</p>
   </form>
 </section>

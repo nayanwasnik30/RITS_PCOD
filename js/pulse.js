@@ -99,33 +99,88 @@ function toast(msg){
   setTimeout(()=>t.classList.remove('show'), 1600);
 }
 
-/* ---------- Local sign-in ---------- */
+/* ---------- Supabase Auth ---------- */
+const SUPABASE_URL = 'https://ujkupyimtbqzkusiefyb.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_V_CERZB2-opTWvXo0NUj6w_XDMwNoJ4';
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+let currentUser = null;
+
+function showError(msg){
+  const el = document.getElementById('authError');
+  el.textContent = msg; el.style.display = 'block';
+}
+function hideError(){ document.getElementById('authError').style.display = 'none'; }
+
 function showLogin(){
-  const screen = document.getElementById('loginScreen');
-  const savedName = settings.name || '';
-  document.getElementById('loginName').value = savedName;
-  document.getElementById('loginMessage').textContent = savedName
-    ? `Welcome back, ${savedName}. Confirm your name to continue.`
-    : 'Sign in to start tracking your daily wellness.';
-  screen.hidden = false;
-  document.getElementById('loginName').focus();
+  document.getElementById('loginScreen').hidden = false;
+  document.getElementById('loginEmail').focus();
 }
 function hideLogin(){ document.getElementById('loginScreen').hidden = true; }
-document.getElementById('loginForm').addEventListener('submit', (event)=>{
+
+// Sign in with email/password
+document.getElementById('loginForm').addEventListener('submit', async (event)=>{
   event.preventDefault();
-  const name = document.getElementById('loginName').value.trim();
-  if(!name) return;
-  settings.name = name;
+  hideError();
+  const email = document.getElementById('loginEmail').value.trim();
+  const password = document.getElementById('loginPassword').value;
+  if(!email || !password) return;
+
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+  if(error){
+    showError(error.message);
+    return;
+  }
+  currentUser = data.user;
+  settings.name = email.split('@')[0];
   saveSettingsToStore();
-  sessionStorage.setItem(SESSION_KEY, 'true');
   hideLogin();
-  toast(`Welcome, ${name}`);
+  toast(`Welcome, ${settings.name}`);
 });
-document.getElementById('signOut').addEventListener('click', ()=>{
-  sessionStorage.removeItem(SESSION_KEY);
-  sessionStorage.removeItem('rit_pcod_signed_in');
+
+// Sign up with email/password
+document.getElementById('signUpBtn').addEventListener('click', async ()=>{
+  hideError();
+  const email = document.getElementById('loginEmail').value.trim();
+  const password = document.getElementById('loginPassword').value;
+  if(!email || !password){ showError('Please enter email and password.'); return; }
+  if(password.length < 6){ showError('Password must be at least 6 characters.'); return; }
+
+  const { data, error } = await supabase.auth.signUp({ email, password });
+  if(error){
+    showError(error.message);
+    return;
+  }
+  if(data.user && data.user.identities && data.user.identities.length === 0){
+    showError('An account with this email already exists.');
+    return;
+  }
+  currentUser = data.user;
+  settings.name = email.split('@')[0];
+  saveSettingsToStore();
+  hideLogin();
+  toast(`Account created! Welcome, ${settings.name}`);
+});
+
+// Sign out
+document.getElementById('signOut').addEventListener('click', async ()=>{
+  await supabase.auth.signOut();
+  currentUser = null;
   location.reload();
 });
+
+// Check session on load
+async function checkSession(){
+  const { data: { session } } = await supabase.auth.getSession();
+  if(session && session.user){
+    currentUser = session.user;
+    settings.name = currentUser.email.split('@')[0];
+    saveSettingsToStore();
+    hideLogin();
+    return true;
+  }
+  showLogin();
+  return false;
+}
 
 /* ---------- Navigation ---------- */
 document.querySelectorAll('.nav-btn').forEach(btn=>{
@@ -829,4 +884,4 @@ buildMealRows();
 buildStaticChips();
 buildMoodRow();
 renderToday();
-if(sessionStorage.getItem(SESSION_KEY) !== 'true') showLogin();
+checkSession();
