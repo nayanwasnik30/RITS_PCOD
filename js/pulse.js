@@ -181,19 +181,20 @@ document.getElementById('signUpBtn').addEventListener('click', async ()=>{
 });
 
 // Forgot password
-document.getElementById('forgotPwBtn').addEventListener('click', async ()=>{
+document.getElementById('forgotPwBtn').addEventListener('click', async (e)=>{
+  e.preventDefault();
+  e.stopPropagation();
   hideMessages();
-  if(!sbClient){ showError('Auth system not loaded. Please refresh the page.'); return; }
+  if(!sbClient){ showError('Auth not loaded — refresh the page.'); return; }
   const email = document.getElementById('loginEmail').value.trim();
   if(!email){ showError('Enter your email above first, then click Forgot password.'); return; }
-  const { error } = await sbClient.auth.resetPasswordForEmail(email, {
-    redirectTo: window.location.href
-  });
-  if(error){
-    showError(error.message);
-    return;
-  }
-  showSuccess('Password reset email sent! Check your inbox.');
+  try {
+    const { error } = await sbClient.auth.resetPasswordForEmail(email, {
+      redirectTo: window.location.href
+    });
+    if(error){ showError(error.message); return; }
+    showSuccess('Password reset email sent! Check your inbox.');
+  } catch(err) { showError('Reset failed: ' + err.message); }
 });
 
 // Sign out
