@@ -1,7 +1,9 @@
 /* ============================================================
-   PULSE — Daily Wellness Tracker
+   PULSE — Daily Wellness Tracker v1.0.0008
    All data stored in localStorage under key "pulse_v1"
    ============================================================ */
+console.log('Pulse v1.0.0008 loaded');
+window.__PULSE_VERSION = '1.0.0008';
 
 const STORE_KEY = 'pulse_data_v1';
 const SETTINGS_KEY = 'pulse_settings_v1';
@@ -127,6 +129,9 @@ function hideMessages(){
   document.getElementById('authError').style.display = 'none';
   document.getElementById('authSuccess').style.display = 'none';
 }
+function hideError(){
+  document.getElementById('authError').style.display = 'none';
+}
 
 function showLogin(){
   document.getElementById('loginScreen').hidden = false;
@@ -143,16 +148,31 @@ document.getElementById('loginForm').addEventListener('submit', async (event)=>{
   const password = document.getElementById('loginPassword').value;
   if(!email || !password) return;
 
-  const { data, error } = await sbClient.auth.signInWithPassword({ email, password });
-  if(error){
-    showError(error.message);
-    return;
+  const loginBtn = document.getElementById('loginButton');
+  loginBtn.disabled = true;
+  loginBtn.textContent = 'Signing in…';
+  try {
+    const { data: result, error } = await sbClient.auth.signInWithPassword({ email, password });
+    if(error){
+      showError(error.message);
+      return;
+    }
+    if(!result || !result.user){
+      showError('Sign-in succeeded but no user data was returned. Please try again.');
+      return;
+    }
+    currentUser = result.user;
+    settings.name = email.split('@')[0];
+    saveSettingsToStore();
+    hideLogin();
+    toast(`Welcome, ${settings.name}`);
+  } catch(e) {
+    console.error('Sign-in error:', e);
+    showError('Could not reach the server. Check your internet connection and try again.');
+  } finally {
+    loginBtn.disabled = false;
+    loginBtn.textContent = 'Sign in';
   }
-  currentUser = data.user;
-  settings.name = email.split('@')[0];
-  saveSettingsToStore();
-  hideLogin();
-  toast(`Welcome, ${settings.name}`);
 });
 
 // Sign up with email/password
@@ -164,20 +184,35 @@ document.getElementById('signUpBtn').addEventListener('click', async ()=>{
   if(!email || !password){ showError('Please enter email and password.'); return; }
   if(password.length < 6){ showError('Password must be at least 6 characters.'); return; }
 
-  const { data, error } = await sbClient.auth.signUp({ email, password });
-  if(error){
-    showError(error.message);
-    return;
+  const signUpBtn = document.getElementById('signUpBtn');
+  signUpBtn.disabled = true;
+  signUpBtn.textContent = 'Creating account…';
+  try {
+    const { data: result, error } = await sbClient.auth.signUp({ email, password });
+    if(error){
+      showError(error.message);
+      return;
+    }
+    if(result.user && result.user.identities && result.user.identities.length === 0){
+      showError('An account with this email already exists.');
+      return;
+    }
+    if(!result.user){
+      showError('Account may have been created. Check your email for a confirmation link, then sign in.');
+      return;
+    }
+    currentUser = result.user;
+    settings.name = email.split('@')[0];
+    saveSettingsToStore();
+    hideLogin();
+    toast(`Account created! Welcome, ${settings.name}`);
+  } catch(e) {
+    console.error('Sign-up error:', e);
+    showError('Could not reach the server. Check your internet connection and try again.');
+  } finally {
+    signUpBtn.disabled = false;
+    signUpBtn.textContent = 'Create account';
   }
-  if(data.user && data.user.identities && data.user.identities.length === 0){
-    showError('An account with this email already exists.');
-    return;
-  }
-  currentUser = data.user;
-  settings.name = email.split('@')[0];
-  saveSettingsToStore();
-  hideLogin();
-  toast(`Account created! Welcome, ${settings.name}`);
 });
 
 // Forgot password
@@ -199,7 +234,9 @@ document.getElementById('forgotPwBtn').addEventListener('click', async (e)=>{
 
 // Sign out
 document.getElementById('signOut').addEventListener('click', async ()=>{
-  await sbClient.auth.signOut();
+  try {
+    if(sbClient) await sbClient.auth.signOut();
+  } catch(e) { console.error('Sign-out error:', e); }
   currentUser = null;
   location.reload();
 });
@@ -207,13 +244,17 @@ document.getElementById('signOut').addEventListener('click', async ()=>{
 // Check session on load
 async function checkSession(){
   if(!sbClient){ showLogin(); return false; }
-  const { data: { session } } = await sbClient.auth.getSession();
-  if(session && session.user){
-    currentUser = session.user;
-    settings.name = currentUser.email.split('@')[0];
-    saveSettingsToStore();
-    hideLogin();
-    return true;
+  try {
+    const { data: { session } } = await sbClient.auth.getSession();
+    if(session && session.user){
+      currentUser = session.user;
+      settings.name = (currentUser.email || '').split('@')[0];
+      saveSettingsToStore();
+      hideLogin();
+      return true;
+    }
+  } catch(e) {
+    console.error('Session check failed:', e);
   }
   showLogin();
   return false;

@@ -23,7 +23,7 @@ app.use((req, res, next) => {
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "font-src 'self' https://fonts.gstatic.com",
     "img-src 'self' data:",
-    "connect-src 'self' https://api.anthropic.com",
+    "connect-src 'self' https://api.anthropic.com https://ujkupyimtbqzkusiefyb.supabase.co wss://ujkupyimtbqzkusiefyb.supabase.co",
     "frame-ancestors 'none'"
   ].join('; '));
   next();
@@ -38,9 +38,9 @@ app.use(express.static(DIST, {
   etag: true,
   lastModified: true,
   setHeaders(res, filePath) {
-    // Cache HTML for a short time so updates propagate
-    if (filePath.endsWith('.html')) {
-      res.setHeader('Cache-Control', 'public, max-age=300');
+    // Don't cache JS/HTML so updates propagate
+    if (filePath.endsWith('.html') || filePath.endsWith('.js')) {
+      res.setHeader('Cache-Control', 'no-cache');
     }
   }
 }));
