@@ -249,7 +249,7 @@ main{padding:16px 14px 8px; max-width:640px; margin:0 auto;}
     <button type="submit" id="loginButton">Sign in</button>
     <button type="button" id="signUpBtn" style="width:100%;margin-top:8px;border:1px solid #ddd;background:#fff;color:#3F2734;border-radius:10px;padding:12px;font:600 14px 'Inter',sans-serif;cursor:pointer;">Create account</button>
     <p class="login-note">Your wellness data stays in this browser on this device.</p>
-    <p style="text-align:center;font-size:10px;color:#ccc;margin-top:8px;">v1.0.0009</p>
+    <p style="text-align:center;font-size:10px;color:#ccc;margin-top:8px;">v1.0.0010</p>
   </form>
 </section>
 
@@ -457,31 +457,18 @@ main{padding:16px 14px 8px; max-width:640px; margin:0 auto;}
     </div>
 
     <div class="card coach-card">
-      <div class="card-head"><div class="card-title">✨ Ask Jarvis</div><div class="card-readout readout-neutral" id="jarvisModeLabel">free Gemini</div></div>
-      <div class="hint">Jarvis is your personal wellness companion for PCOD-aware routines, energy, food, movement, and cycle-supportive habits. Get started with <span class="free-badge">FREE</span> Gemini AI — just grab a free key from Google AI Studio (takes 30 seconds, no credit card needed).</div>
+      <div class="card-head"><div class="card-title">✨ Ask Jarvis</div></div>
+      <div class="hint">Your personal wellness companion for PCOD-aware routines, energy, food, movement, and cycle-supportive habits. Powered by <span class="free-badge">FREE</span> Gemini AI.</div>
 
-      <div class="provider-select" id="providerSelect">
-        <button class="provider-btn active" data-provider="gemini">🤖 Gemini (FREE)</button>
-        <button class="provider-btn" data-provider="anthropic">Claude</button>
-        <button class="provider-btn" data-provider="openai">ChatGPT</button>
-        <button class="provider-btn" data-provider="free">🆓 Offline</button>
+      <div style="display:flex;gap:8px;align-items:center;margin:10px 0;">
+        <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:4px;padding:6px 14px;border-radius:20px;background:linear-gradient(135deg,#4285F4,#34A853);color:#fff;font-size:12px;font-weight:600;text-decoration:none;white-space:nowrap;">🔑 Get free Gemini key</a>
+        <span style="font-size:11px;color:var(--ink-faint);">No credit card · 30 sec</span>
       </div>
+      <input type="password" id="apiKeyInput" class="key-input" placeholder="Paste your Gemini API key (AIza...)" style="margin-bottom:10px;">
 
-      <div id="apiKeySection">
-        <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;">
-          <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:4px;padding:6px 14px;border-radius:20px;background:linear-gradient(135deg,#4285F4,#34A853);color:#fff;font-size:12px;font-weight:600;text-decoration:none;white-space:nowrap;">🔑 Get free Gemini key</a>
-          <span style="font-size:11px;color:var(--ink-faint);">No credit card · 30 seconds · 100% free</span>
-        </div>
-        <input type="password" id="apiKeyInput" class="key-input" placeholder="Paste your Gemini API key (AIza...)">
-        <div class="ai-toggle">
-          <button class="pill-btn" id="runAI">Review my trends</button>
-          <button class="pill-btn ghost" id="clearKey">Clear key</button>
-        </div>
-      </div>
+      <div id="jarvisOutput" style="min-height:60px;padding:14px;background:var(--surface-2);border-radius:12px;font-size:13.5px;line-height:1.55;white-space:pre-wrap;margin-bottom:10px;">Hi! I'm <b>Jarvis</b> 💜 Ask me anything — a protein snack idea, a gentle movement break, or an evening wind-down. I'm here for you!</div>
 
-      <div class="ai-output" id="aiOutput"></div>
-      <div class="coach-chat" id="coachChat" aria-live="polite"><div class="coach-message coach"><div style="display:flex;gap:8px;align-items:start;"><div class="jarvis-avatar">💜</div><div>Hi! I'm <b>Jarvis</b>, your personal wellness companion. Ask me anything — a protein snack idea, a gentle movement break, or an evening wind-down. I'm here for you!</div></div></div></div>
-      <form class="coach-form" id="coachForm"><textarea id="coachInput" maxlength="500" placeholder="Ask Jarvis anything…"></textarea><button class="pill-btn" type="submit">Send</button></form>
+      <form id="jarvisForm" style="display:flex;gap:8px;align-items:end;"><textarea id="jarvisInput" maxlength="500" placeholder="Ask Jarvis anything…" style="flex:1;min-height:44px;max-height:100px;border:1px solid #D8C5E5;border-radius:12px;padding:10px;font:13px 'Inter',sans-serif;resize:vertical;"></textarea><button class="pill-btn" type="submit">Send</button></form>
       <p class="coach-disclaimer">Jarvis is for everyday wellness support only — not medical advice, diagnosis, or emergency care.</p>
     </div>
   </section>
@@ -576,7 +563,7 @@ main{padding:16px 14px 8px; max-width:640px; margin:0 auto;}
 <div class="toast" id="toast"></div>
 
 <script>
-/* v1.0.0009 — Force-bust old caches */
+/* v1.0.0010 — Force-bust old caches */
 (function(){
   if('serviceWorker' in navigator){
     navigator.serviceWorker.getRegistrations().then(function(r){r.forEach(function(reg){reg.unregister()})});
@@ -586,19 +573,19 @@ main{padding:16px 14px 8px; max-width:640px; margin:0 auto;}
   }
 })();
 </script>
-<script src="js/pulse.js?v=9"></script>
+<script src="js/pulse.js?v=10"></script>
 <script>
 /* Check that new code loaded — if stale, force reload */
-if(!window.__PULSE_VERSION || window.__PULSE_VERSION !== '1.0.0009'){
+if(!window.__PULSE_VERSION || window.__PULSE_VERSION !== '1.0.0010'){
   console.warn('Stale Pulse code detected — forcing cache refresh');
   if('caches' in window) caches.keys().then(function(k){k.forEach(function(n){caches.delete(n)})});
   if('serviceWorker' in navigator) navigator.serviceWorker.getRegistrations().then(function(r){r.forEach(function(reg){reg.unregister()})});
   setTimeout(function(){ location.reload(true); }, 500);
 } else {
-  console.log('Pulse v1.0.0009 verified');
+  console.log('Pulse v1.0.0010 verified');
 }
 if('serviceWorker' in navigator){
-  navigator.serviceWorker.register('/sw.js?v=9').catch(()=>{});
+  navigator.serviceWorker.register('/sw.js?v=10').catch(()=>{});
 }
 </script>
 </body>
