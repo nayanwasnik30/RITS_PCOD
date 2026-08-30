@@ -235,7 +235,7 @@ async function askJarvis(question){
   const context='\nRecent wellness logs: '+JSON.stringify(recentDays).slice(0,3000);
   const fullPrompt=JARVIS_SYSTEM+context+'\n\nUser question: '+question;
 
-  const resp=await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key='+key,{
+  const resp=await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key='+key,{
     method:'POST',
     headers:{'Content-Type':'application/json'},
     body:JSON.stringify({
