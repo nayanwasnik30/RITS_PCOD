@@ -257,6 +257,11 @@ main{padding:16px 14px 8px;max-width:640px;margin:0 auto;}
 .sign-out{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);color:#EAF3EF;border-radius:10px;padding:5px 8px;font:11px 'Inter',sans-serif;cursor:pointer;transition:all .2s ease;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);}
 .sign-out:active{transform:scale(.92);background:rgba(255,255,255,.2);}
 
+/* ---- step wizard ---- */
+.step-dot{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.25);transition:all .25s cubic-bezier(.34,1.56,.64,1);}
+.step-dot.active{background:var(--teal);width:20px;border-radius:4px;box-shadow:0 0 8px rgba(200,95,135,.4);}
+.step-dot.done{background:rgba(200,95,135,.4);}
+
 /* ---- scrollbar glass ---- */
 ::-webkit-scrollbar{width:4px;}
 ::-webkit-scrollbar-track{background:transparent;}
@@ -271,17 +276,16 @@ main{padding:16px 14px 8px;max-width:640px;margin:0 auto;}
     <div class="login-mark">P</div>
     <h1 id="loginTitle">Welcome to Pulse</h1>
     <p id="loginMessage">Sign in to start tracking your daily wellness.</p>
-    <div id="authError" style="display:none;background:#FBE7E2;color:#C6576E;padding:8px 12px;border-radius:8px;font-size:12px;margin-bottom:12px;"></div>
-    <div id="authSuccess" style="display:none;background:#D4EDDA;color:#155724;padding:8px 12px;border-radius:8px;font-size:12px;margin-bottom:12px;"></div>
+    <div id="authError" style="display:none;background:rgba(198,87,110,.15);color:#fff;padding:8px 12px;border-radius:8px;font-size:12px;margin-bottom:12px;"></div>
+    <div id="authSuccess" style="display:none;background:rgba(182,90,123,.15);color:#fff;padding:8px 12px;border-radius:8px;font-size:12px;margin-bottom:12px;"></div>
     <label for="loginEmail">Email</label>
     <input id="loginEmail" type="email" autocomplete="email" placeholder="you@gmail.com" required>
     <label for="loginPassword">Password</label>
     <input id="loginPassword" type="password" autocomplete="current-password" placeholder="••••••••" required minlength="6">
-    <div style="text-align:right;margin-top:-8px;"><button type="button" id="forgotPwBtn" style="background:none;border:none;color:#806272;font-size:12px;cursor:pointer;text-decoration:underline;">Forgot password?</button></div>
+    <div style="text-align:right;margin-top:-8px;"><button type="button" id="forgotPwBtn" style="background:none;border:none;color:rgba(255,255,255,.6);font-size:12px;cursor:pointer;text-decoration:underline;">Forgot password?</button></div>
     <button type="submit" id="loginButton">Sign in</button>
-    <button type="button" id="signUpBtn" style="width:100%;margin-top:8px;border:1px solid #ddd;background:#fff;color:#3F2734;border-radius:10px;padding:12px;font:600 14px 'Inter',sans-serif;cursor:pointer;">Create account</button>
+    <button type="button" id="signUpBtn" style="width:100%;margin-top:8px;border:1px solid rgba(255,255,255,.25);background:rgba(255,255,255,.1);color:#fff;border-radius:12px;padding:12px;font:600 14px 'Inter',sans-serif;cursor:pointer;backdrop-filter:blur(8px);">Create account</button>
     <p class="login-note">Made with 💜 for someone who truly loves you.</p>
-    <p style="text-align:center;font-size:10px;color:#ccc;margin-top:8px;">v2.0.0001</p>
   </form>
 </section>
 
@@ -291,158 +295,45 @@ main{padding:16px 14px 8px;max-width:640px;margin:0 auto;}
       <svg class="brand-mark" viewBox="0 0 24 24" fill="none"><path d="M2 12h4l2-7 4 14 3-11 2 4h5" stroke="#F7B8CF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
       <span class="brand-name">Pulse</span>
     </div>
-    <button class="sign-out" id="signOut" type="button">Sign out</button>
+    <div style="display:flex;align-items:center;gap:6px;">
+      <div class="score-mini" id="scoreMini" style="display:flex;align-items:center;gap:4px;background:rgba(255,255,255,.15);padding:3px 10px;border-radius:20px;font-family:'IBM Plex Mono';font-size:12px;">
+        <span id="ringNum">—</span><span style="opacity:.7;">score</span>
+      </div>
+      <button class="sign-out" id="signOut" type="button">Sign out</button>
+    </div>
+  </div>
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-top:6px;">
     <div class="date-nav">
       <button id="prevDay">‹</button>
       <span class="date-label" id="dateLabel">—</span>
       <button id="nextDay">›</button>
     </div>
+    <button class="today-chip" id="jumpToday">jump to today</button>
   </div>
-  <button class="today-chip" id="jumpToday">jump to today</button>
-
-  <div class="score-row">
-    <div class="ring-wrap">
-      <svg width="74" height="74" viewBox="0 0 74 74">
-        <circle class="ring-bg" cx="37" cy="37" r="30"></circle>
-        <circle class="ring-fg" id="ringFg" cx="37" cy="37" r="30" stroke-dasharray="188.4" stroke-dashoffset="188.4"></circle>
-      </svg>
-      <div class="ring-num" id="ringNum">—</div>
-    </div>
-    <div class="score-meta">
-      <div class="label">Wellness score</div>
-      <div class="sub" id="scoreSub">Log today to see your score</div>
-    </div>
-    <div class="streak-badge">
-      <b id="streakNum">0</b>day streak
-    </div>
-  </div>
-
-  <svg class="pulseline" viewBox="0 0 400 20" preserveAspectRatio="none">
-    <path d="M0,10 L60,10 L75,10 L85,2 L95,18 L105,10 L120,10 L140,10 L150,4 L160,16 L170,10 L400,10"/>
-  </svg>
 </header>
 
 <main>
 
-  <!-- ============ TODAY ============ -->
+  <!-- ============ TODAY — single step widget ============ -->
   <section class="page active" id="page-today">
+    <div class="card" style="padding:14px;">
 
-    <!-- FOOD / PROTEIN SCORE -->
-    <div class="card">
-      <div class="card-head">
-        <div class="card-title"><span class="icon">🍽</span>Food score — protein</div>
-        <div class="card-readout" id="proteinReadout">0/0g</div>
+      <!-- progress bar -->
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+        <span style="font-family:'IBM Plex Mono';font-size:12px;color:var(--ink-faint);" id="stepLabel">1 / 8</span>
+        <div style="display:flex;gap:4px;" id="stepDots"></div>
       </div>
-      <div class="hint" id="proteinTargetHint">Target: 50g per meal · 150g/day. Adjust in Settings.</div>
 
-      <div id="mealRows"></div>
+      <!-- step content area -->
+      <div id="stepContent"></div>
+
+      <!-- nav buttons -->
+      <div style="display:flex;gap:8px;margin-top:14px;">
+        <button class="pill-btn ghost" id="stepPrev" style="flex:1;">← Back</button>
+        <button class="pill-btn" id="stepNext" style="flex:1;">Next →</button>
+      </div>
+
     </div>
-
-    <!-- STEPS -->
-    <div class="card">
-      <div class="card-head">
-        <div class="card-title"><span class="icon">👣</span>Steps</div>
-        <div class="card-readout" id="stepsReadout">0</div>
-      </div>
-      <div class="bar-track"><div class="bar-fill" id="stepsBar" style="width:0%; background:var(--teal);"></div></div>
-      <div class="manual-row">
-        <button class="small-btn" data-adj="steps" data-delta="-500">−</button>
-        <input type="number" id="stepsInput" min="0" step="100">
-        <button class="small-btn" data-adj="steps" data-delta="500">+</button>
-        <span class="unit">steps</span>
-      </div>
-      <div class="chip-row" id="stepsChips"></div>
-    </div>
-
-    <!-- WATER -->
-    <div class="card">
-      <div class="card-head">
-        <div class="card-title"><span class="icon">💧</span>Water</div>
-        <div class="card-readout" id="waterReadout">0.0L</div>
-      </div>
-      <div class="bar-track"><div class="bar-fill" id="waterBar" style="width:0%; background:var(--sky);"></div></div>
-      <div class="chip-row">
-        <button class="chip plus" data-water="250">+250ml</button>
-        <button class="chip plus" data-water="500">+500ml</button>
-        <button class="chip plus" data-water="750">+1 bottle (750ml)</button>
-        <button class="chip" id="waterReset">reset</button>
-      </div>
-    </div>
-
-    <!-- SLEEP -->
-    <div class="card">
-      <div class="card-head">
-        <div class="card-title"><span class="icon">🌙</span>Sleep</div>
-        <div class="card-readout" id="sleepReadout">0.0h</div>
-      </div>
-      <div class="bar-track"><div class="bar-fill" id="sleepBar" style="width:0%; background:var(--lilac);"></div></div>
-      <div class="chip-row" id="sleepChips"></div>
-      <div class="field-grid" style="margin-top:10px;">
-        <div class="field">
-          <label>Sleep quality</label>
-          <select id="sleepQuality">
-            <option>Poor</option><option>Fair</option><option selected>Good</option><option>Excellent</option>
-          </select>
-        </div>
-        <div class="field">
-          <label>Stress level</label>
-          <select id="stressLevel">
-            <option selected>Low</option><option>Medium</option><option>High</option>
-          </select>
-        </div>
-      </div>
-    </div>
-
-    <!-- HEART RATE + WEIGHT -->
-    <div class="card">
-      <div class="card-head">
-        <div class="card-title"><span class="icon">❤</span>Heart rate & weight</div>
-        <div class="card-readout" id="hrReadout">— bpm</div>
-      </div>
-      <div class="field-grid">
-        <div class="field">
-          <label>Resting HR (bpm)</label>
-          <input type="number" id="hrInput" min="0" placeholder="e.g. 68">
-        </div>
-        <div class="field">
-          <label>Weight (kg)</label>
-          <input type="number" id="weightInput" step="0.1" placeholder="e.g. 62.4">
-        </div>
-      </div>
-      <div class="hint" id="hrRangeHint">Reference range: 60–100 bpm. Adjust in Settings.</div>
-    </div>
-
-    <!-- EXERCISE -->
-    <div class="card">
-      <div class="card-head">
-        <div class="card-title"><span class="icon">🏃</span>Exercise</div>
-        <div class="card-readout" id="exReadout">0 min</div>
-      </div>
-      <div class="chip-row" id="exChips"></div>
-      <div class="field" style="margin-top:8px;">
-        <label>Type (optional)</label>
-        <input type="text" id="exType" placeholder="e.g. Walk, Yoga, Gym">
-      </div>
-    </div>
-
-    <!-- MOOD -->
-    <div class="card">
-      <div class="card-head"><div class="card-title"><span class="icon">🙂</span>Mood & energy</div></div>
-      <div class="emoji-row" id="moodRow"></div>
-      <div class="field" style="margin-top:12px;">
-        <label>Energy level (1–10)</label>
-        <input type="range" id="energyRange" min="1" max="10" value="6" style="width:100%;">
-        <div class="hint" style="text-align:center;" id="energyVal">6 / 10</div>
-      </div>
-    </div>
-
-    <!-- NOTES -->
-    <div class="card">
-      <div class="card-head"><div class="card-title"><span class="icon">📝</span>Notes / symptoms</div></div>
-      <textarea id="notesInput" style="width:100%; min-height:56px; border:1px solid var(--line); border-radius:10px; padding:8px; font-family:Inter; font-size:13px;" placeholder="Optional — anything worth remembering about today"></textarea>
-    </div>
-    <div class="save-bar"><button class="pill-btn" id="saveToday" type="button">Save today's log</button></div>
-
   </section>
 
   <!-- ============ TRENDS ============ -->
@@ -607,12 +498,12 @@ main{padding:16px 14px 8px;max-width:640px;margin:0 auto;}
 <script>
 /* Check that new code loaded — if stale, force reload */
 if(!window.__PULSE_VERSION || window.__PULSE_VERSION !== '1.0.0008'){
-  console.warn('Stale Pulse code detected — forcing cache refresh');
+  console.warn('Stale Pulse — forcing refresh');
   if('caches' in window) caches.keys().then(function(k){k.forEach(function(n){caches.delete(n)})});
   if('serviceWorker' in navigator) navigator.serviceWorker.getRegistrations().then(function(r){r.forEach(function(reg){reg.unregister()})});
   setTimeout(function(){ location.reload(true); }, 500);
 } else {
-  console.log('Pulse v2.0.0001 verified');
+  console.log('Pulse v2 verified');
 }
 if('serviceWorker' in navigator){
   navigator.serviceWorker.register('/sw.js?v=2.1').catch(()=>{});
