@@ -91,7 +91,7 @@ function updateStepUI(){
   dots.forEach((d,i)=>{d.className='step-dot'+(i===currentStep?' active':(i<currentStep?' done':''))});
   document.getElementById('stepLabel').textContent=STEPS[currentStep].icon+' '+(currentStep+1)+' / '+STEPS.length;
   document.getElementById('stepPrev').style.display=currentStep===0?'none':'';
-  document.getElementById('stepNext').textContent=currentStep===STEPS.length-1?'Save ✓':'Next →';
+  document.getElementById('stepNext').textContent=currentStep===STEPS.length-1?'Done ✓':'Next →';
 }
 function renderStep(){
   // update date label
@@ -102,26 +102,11 @@ function renderStep(){
   STEPS[currentStep].render();
   updateCompactScore();
 }
-function getDefaultDay(){
-  return{protein:{morning:settings.proteinMeal,lunch:settings.proteinMeal,dinner:settings.proteinMeal},steps:settings.steps,waterMl:settings.waterMl,sleepHrs:settings.sleepHrs,sleepQuality:'Good',stress:'Low',hr:null,weight:null,exerciseMin:settings.exerciseMin,exerciseType:'',mood:'Calm',energy:6,notes:''};
-}
 function goStep(dir){
-  if(dir===1&&currentStep===STEPS.length-1){saveData();toast("Today's log saved! 💜");return}
-  // on forward, apply defaults for empty fields
-  if(dir===1){
-    const day=getDay(currentDate);
-    const d=getDefaultDay();
-    if(!day.protein.morning&&!day.protein.lunch&&!day.protein.dinner)Object.assign(day.protein,d.protein);
-    if(!day.steps)day.steps=d.steps;
-    if(!day.waterMl)day.waterMl=d.waterMl;
-    if(!day.sleepHrs)day.sleepHrs=d.sleepHrs;
-    if(!day.exerciseMin)day.exerciseMin=d.exerciseMin;
-    if(!day.mood)day.mood=d.mood;
-    if(day.energy===6)day.energy=d.energy;
-    saveData();
-  }
+  saveData(); // auto-save on every step
   currentStep=Math.max(0,Math.min(STEPS.length-1,currentStep+dir));
   renderStep();
+  if(currentStep===STEPS.length-1)toast('Auto-saved ✓');
 }
 document.getElementById('stepPrev').addEventListener('click',()=>goStep(-1));
 document.getElementById('stepNext').addEventListener('click',()=>goStep(1));
@@ -130,17 +115,13 @@ document.getElementById('stepNext').addEventListener('click',()=>goStep(1));
 function renderFoodStep(){
   const day=getDay(currentDate),meals=['morning','lunch','dinner'];
   let total=0;const tgt=settings.proteinMeal*3;
-  const p=Math.min(100,(total/tgt)*100);
   let html='<div style="font-size:14px;font-weight:600;margin-bottom:10px;">🍽 Food · Protein</div>';
   meals.forEach(k=>{
     const v=day.protein[k]||0;total+=v;
     const pct2=Math.min(100,(v/settings.proteinMeal)*100);
     const emoji=pct2>=100?'✅':pct2>=60?'👍':'❗';
-    html+=`<div style="margin-bottom:10px;"><div style="display:flex;justify-content:space-between;font-size:13px;font-weight:500;"><span>${emoji} ${k==='morning'?'Breakfast':k==='lunch'?'Lunch':'Dinner'}</span><span style="color:var(--ink-soft);font-size:12px;">${pct2>=100?'done!':pct2+'%'}</span></div><div class="bar-track"><div class="bar-fill" style="width:${pct2}%;background:linear-gradient(90deg,rgba(200,95,135,.4),var(--teal));"></div></div><div class="chip-row" style="margin-top:6px;">${[6,10,18,20,25,30].map(g=>`<button class="chip" onclick="addProtein('${k}',${g})">${g}g</button>`).join('')}</div></div>`;
+    html+=`<div style="margin-bottom:10px;"><div style="display:flex;justify-content:space-between;font-size:13px;font-weight:500;"><span>${emoji} ${k==='morning'?'Breakfast':k==='lunch'?'Lunch':'Dinner'}</span><span style="color:var(--ink-soft);font-size:12px;">${v}g</span></div><div class="bar-track"><div class="bar-fill" style="width:${pct2}%;background:linear-gradient(90deg,rgba(200,95,135,.4),var(--teal));"></div></div><div class="chip-row" style="margin-top:6px;"><button class="chip" onclick="addProtein('${k}',-5)" style="color:var(--bad);">−5</button>${[6,10,18,20,25,30].map(g=>`<button class="chip" onclick="addProtein('${k}',${g})">${g}g</button>`).join('')}</div></div>`;
   });
-  const totalPct=Math.min(100,(total/tgt)*100);
-  const totalEmoji=totalPct>=100?'🎉':totalPct>=60?'💪':'❗';
-  html+=`<div style="text-align:center;font-size:13px;padding:8px;background:rgba(200,95,135,.08);border-radius:12px;">${totalEmoji} ${totalPct>=100?'Protein goal hit!':totalPct+'% of daily goal'}</div>`;
   document.getElementById('stepContent').innerHTML=html;
 }
 window.addProtein=function(k,g){const day=getDay(currentDate);day.protein[k]+=g;saveData();renderStep()};
@@ -154,10 +135,12 @@ function renderStepsStep(){
     <div style="text-align:center;font-size:36px;margin:6px 0;">${emoji}</div>
     <div style="text-align:center;font-size:13px;color:var(--ink-soft);margin-bottom:8px;">${msg}</div>
     <div class="bar-track" style="height:10px;"><div class="bar-fill" style="width:${p}%;background:linear-gradient(90deg,var(--teal),var(--coral));"></div></div>
-    <div style="display:flex;gap:8px;align-items:center;justify-content:center;margin:10px 0;">
-      <button class="small-btn" onclick="adjSteps(-500)">−</button>
-      <input type="number" id="stepsInput" value="${s}" min="0" step="100" onchange="setSteps(this.value)" style="width:70px;padding:8px;text-align:center;border-radius:10px;border:1px solid rgba(255,255,255,.4);background:rgba(255,255,255,.35);font-family:'IBM Plex Mono';font-size:14px;">
-      <button class="small-btn" onclick="adjSteps(500)">+</button>
+    <div style="display:flex;gap:6px;align-items:center;justify-content:center;margin:10px 0;">
+      <button class="small-btn" onclick="adjSteps(-1000)" style="color:var(--bad);">−1k</button>
+      <button class="small-btn" onclick="adjSteps(-500)" style="color:var(--bad);">−500</button>
+      <input type="number" id="stepsInput" value="${s}" min="0" step="100" onchange="setSteps(this.value)" style="width:65px;padding:8px;text-align:center;border-radius:10px;border:1px solid rgba(255,255,255,.4);background:rgba(255,255,255,.35);font-family:'IBM Plex Mono';font-size:14px;">
+      <button class="small-btn" onclick="adjSteps(500)">+500</button>
+      <button class="small-btn" onclick="adjSteps(1000)">+1k</button>
     </div>
     <div class="chip-row" style="justify-content:center;">${[2000,5000,8000,10000,12000].map(v=>`<button class="chip" onclick="setSteps(${v})">${v.toLocaleString()}</button>`).join('')}</div>`;
 }
@@ -174,6 +157,7 @@ function renderWaterStep(){
     <div style="text-align:center;font-size:13px;color:var(--ink-soft);margin-bottom:8px;">${msg}</div>
     <div class="bar-track" style="height:10px;"><div class="bar-fill" style="width:${p}%;background:linear-gradient(90deg,var(--sky),var(--lilac));"></div></div>
     <div class="chip-row" style="justify-content:center;margin-top:10px;">
+      <button class="chip" onclick="addWater(-250)" style="color:var(--bad);">−250ml</button>
       <button class="chip plus" onclick="addWater(250)">+250ml</button>
       <button class="chip plus" onclick="addWater(500)">+500ml</button>
       <button class="chip plus" onclick="addWater(750)">+1 bottle</button>
@@ -192,7 +176,10 @@ function renderSleepStep(){
     <div style="text-align:center;font-size:36px;margin:6px 0;">${emoji}</div>
     <div style="text-align:center;font-size:13px;color:var(--ink-soft);margin-bottom:8px;">${msg}</div>
     <div class="bar-track" style="height:10px;"><div class="bar-fill" style="width:${p}%;background:linear-gradient(90deg,var(--lilac),var(--teal));"></div></div>
-    <div class="chip-row" style="justify-content:center;margin:10px 0;">${[5,6,6.5,7,7.5,8,9].map(v=>`<button class="chip${h===v?' plus':''}" onclick="setSleep(${v})">${v}h</button>`).join('')}</div>
+    <div class="chip-row" style="justify-content:center;margin:10px 0;">
+      <button class="chip" onclick="setSleep(${Math.max(0,h-0.5)})" style="color:var(--bad);">−.5h</button>
+      ${[5,6,6.5,7,7.5,8,9].map(v=>`<button class="chip${h===v?' plus':''}" onclick="setSleep(${v})">${v}h</button>`).join('')}
+    </div>
     <div class="field-grid">
       <div class="field"><label>Quality</label><select id="sleepQuality" onchange="getDay(currentDate).sleepQuality=this.value;saveData()"><option>Poor</option><option>Fair</option><option ${day.sleepQuality==='Good'?'selected':''}>Good</option><option>Excellent</option></select></div>
       <div class="field"><label>Stress</label><select id="stressLevel" onchange="getDay(currentDate).stress=this.value;saveData()"><option ${day.stress==='Low'?'selected':''}>Low</option><option>Medium</option><option>High</option></select></div>
@@ -220,7 +207,10 @@ function renderExerciseStep(){
     <div style="text-align:center;font-size:36px;margin:6px 0;">${emoji}</div>
     <div style="text-align:center;font-size:13px;color:var(--ink-soft);margin-bottom:8px;">${msg}</div>
     <div class="bar-track" style="height:10px;"><div class="bar-fill" style="width:${p}%;background:linear-gradient(90deg,var(--amber),var(--coral));"></div></div>
-    <div class="chip-row" style="justify-content:center;margin:10px 0;">${[0,15,30,45,60,90].map(v=>`<button class="chip${m===v?' plus':''}" onclick="setEx(${v})">${v}m</button>`).join('')}</div>
+    <div class="chip-row" style="justify-content:center;margin:10px 0;">
+      <button class="chip" onclick="setEx(Math.max(0,${m}-15))" style="color:var(--bad);">−15m</button>
+      ${[0,15,30,45,60,90].map(v=>`<button class="chip${m===v?' plus':''}" onclick="setEx(${v})">${v}m</button>`).join('')}
+    </div>
     <div class="field" style="margin-top:8px;"><label>Type (optional)</label><input type="text" id="exType" value="${day.exerciseType||''}" placeholder="e.g. Walk, Yoga, Gym" onchange="getDay(currentDate).exerciseType=this.value;saveData()"></div>`;
 }
 window.setEx=function(v){getDay(currentDate).exerciseMin=v;saveData();renderStep()};
