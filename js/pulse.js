@@ -190,7 +190,7 @@ document.getElementById('forgotPwBtn').addEventListener('click', async (e)=>{
   if(!email){ showError('Enter your email above first, then click Forgot password.'); return; }
   try {
     const { error } = await sbClient.auth.resetPasswordForEmail(email, {
-      redirectTo: window.location.href
+      redirectTo: window.location.origin + '/RITS_PCOD/reset-password.html'
     });
     if(error){ showError(error.message); return; }
     showSuccess('Password reset email sent! Check your inbox.');
