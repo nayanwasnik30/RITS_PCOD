@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Pulse — Daily Wellness Tracker</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#8D3B5A">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect fill='%23C85F87' width='100' height='100' rx='20'/><text x='50' y='65' font-size='50' font-family='serif' fill='white' text-anchor='middle'>P</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,500&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="js/chart.umd.min.js"></script>
+<script>if(typeof Chart==='undefined')window.Chart=class{constructor(){}destroy(){}};</script>
+<style>
+:root{
+  --bg:#FFF4F8;
+  --surface:#FFFCFD;
+  --surface-2:#F9E7EF;
+  --ink:#3F2734;
+  --ink-soft:#806272;
+  --ink-faint:#AA8C9B;
+  --line:#F0D6E1;
+  --teal:#C85F87;
+  --teal-deep:#8D3B5A;
+  --coral:#E783A6;
+  --amber:#D49A58;
+  --sky:#8B8AC7;
+  --lilac:#A878B8;
+  --good:#B65A7B;
+  --warn:#D49A58;
+  --bad:#C6576E;
+  --radius:16px;
+  --shadow:0 1px 2px rgba(22,33,28,.06), 0 6px 20px rgba(22,33,28,.05);
+}
+*{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+[hidden]{display:none !important;}
+html,body{margin:0;padding:0;}
+body{
+  background:var(--bg);
+  color:var(--ink);
+  font-family:'Inter',system-ui,sans-serif;
+  min-height:100vh;
+  padding-bottom:84px;
+}
+@media (prefers-reduced-motion: reduce){
+  *{animation-duration:.001ms !important; transition-duration:.001ms !important;}
+}
+.mono{font-family:'IBM Plex Mono',monospace;}
+.display{font-family:'Fraunces',serif;}
+
+/* ---------- Top bar ---------- */
+.topbar{
+  position:sticky; top:0; z-index:20;
+  background:var(--teal-deep);
+  color:#EAF3EF;
+  padding:18px 20px 16px;
+  border-radius:0 0 20px 20px;
+  box-shadow:0 8px 24px rgba(21,63,53,.25);
+}
+.topbar-row{display:flex; align-items:center; justify-content:space-between; gap:10px;}
+.brand{display:flex; align-items:center; gap:10px;}
+.brand-mark{width:26px; height:26px; flex:none;}
+.brand-name{font-family:'Fraunces',serif; font-style:italic; font-weight:600; font-size:22px; letter-spacing:.2px;}
+.date-nav{display:flex; align-items:center; gap:8px;}
+.date-nav button{
+  background:rgba(255,255,255,.12); border:none; color:#EAF3EF;
+  width:30px; height:30px; border-radius:9px; font-size:16px; cursor:pointer;
+}
+.date-nav button:active{background:rgba(255,255,255,.24);}
+.date-label{font-family:'IBM Plex Mono',monospace; font-size:12.5px; min-width:96px; text-align:center; opacity:.92;}
+.today-chip{
+  margin-top:2px; font-size:11px; text-decoration:underline; color:#B9E3D4; background:none; border:none; cursor:pointer; padding:2px 0;
+}
+
+.pulseline{width:100%; height:20px; display:block; opacity:.55; margin-top:10px;}
+.pulseline path{fill:none; stroke:#F7B8CF; stroke-width:1.4;}
+
+/* score ring row */
+.score-row{display:flex; align-items:center; gap:16px; margin-top:14px;}
+.ring-wrap{position:relative; width:74px; height:74px; flex:none;}
+.ring-wrap svg{transform:rotate(-90deg);}
+.ring-bg{fill:none; stroke:rgba(255,255,255,.15); stroke-width:8;}
+.ring-fg{fill:none; stroke:#F7B8CF; stroke-width:8; stroke-linecap:round; transition:stroke-dashoffset .6s ease;}
+.ring-num{position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-family:'IBM Plex Mono',monospace; font-weight:600; font-size:18px;}
+.score-meta .label{font-size:11px; letter-spacing:.06em; text-transform:uppercase; opacity:.7;}
+.score-meta .sub{font-size:12.5px; opacity:.85; margin-top:2px;}
+.streak-badge{
+  margin-left:auto; text-align:right; font-family:'IBM Plex Mono',monospace; font-size:12px; opacity:.9;
+}
+.streak-badge b{font-size:16px; display:block;}
+
+/* ---------- Main ---------- */
+main{padding:16px 14px 8px; max-width:640px; margin:0 auto;}
+.page{display:none;}
+.page.active{display:block; animation:fade .25s ease;}
+@keyframes fade{from{opacity:0; transform:translateY(4px);} to{opacity:1; transform:none;}}
+
+.card{
+  background:var(--surface); border-radius:var(--radius); padding:16px;
+  box-shadow:var(--shadow); margin-bottom:12px; border:1px solid var(--line);
+}
+.card-head{display:flex; align-items:baseline; justify-content:space-between; margin-bottom:10px;}
+.card-title{font-family:'Fraunces',serif; font-weight:600; font-size:16px;}
+.card-title .icon{margin-right:6px;}
+.card-readout{font-family:'IBM Plex Mono',monospace; font-weight:600; font-size:14px; padding:3px 9px; border-radius:20px;}
+.readout-good{background:#FCE3EC; color:var(--good);}
+.readout-warn{background:#FBEEDC; color:var(--warn);}
+.readout-bad{background:#FBE7E2; color:var(--bad);}
+.readout-neutral{background:var(--surface-2); color:var(--ink-soft);}
+
+.bar-track{height:8px; background:var(--surface-2); border-radius:6px; overflow:hidden; margin:8px 0 4px;}
+.bar-fill{height:100%; border-radius:6px; transition:width .5s ease;}
+
+.hint{font-size:12px; color:var(--ink-faint); margin-top:2px;}
+
+/* protein meal rows */
+.meal-row{margin-top:12px;}
+.meal-row:first-child{margin-top:0;}
+.meal-top{display:flex; justify-content:space-between; align-items:center; font-size:13.5px; font-weight:600;}
+.meal-top .mono{font-size:13px; color:var(--ink-soft);}
+.chip-row{display:flex; flex-wrap:wrap; gap:6px; margin-top:8px;}
+.chip{
+  border:1px solid var(--line); background:var(--surface); color:var(--ink);
+  border-radius:20px; padding:6px 12px; font-size:12.5px; cursor:pointer; font-family:'Inter';
+}
+.chip:active{background:var(--surface-2);}
+.chip.plus{font-family:'IBM Plex Mono'; font-weight:600;}
+.manual-row{display:flex; gap:8px; margin-top:8px; align-items:center;}
+.manual-row input[type=number]{
+  width:74px; padding:8px 10px; border-radius:10px; border:1px solid var(--line); font-family:'IBM Plex Mono'; font-size:14px;
+}
+.small-btn{
+  border:none; background:var(--surface-2); color:var(--ink); width:32px; height:32px; border-radius:9px; font-size:16px; cursor:pointer;
+}
+.small-btn:active{background:var(--line);}
+.unit{font-size:12px; color:var(--ink-faint);}
+
+/* generic field grid */
+.field-grid{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:4px;}
+.field{display:flex; flex-direction:column; gap:4px;}
+.field label{font-size:11.5px; color:var(--ink-soft); text-transform:uppercase; letter-spacing:.04em;}
+.field input, .field select{
+  padding:9px 10px; border-radius:10px; border:1px solid var(--line); font-family:'IBM Plex Mono'; font-size:14px; background:#fff;
+}
+
+.emoji-row{display:flex; gap:8px; justify-content:space-between; margin-top:6px;}
+.emoji-btn{
+  flex:1; text-align:center; padding:10px 4px; border-radius:12px; border:1px solid var(--line); background:#fff; cursor:pointer; font-size:22px;
+}
+.emoji-btn.sel{background:var(--teal); border-color:var(--teal); filter:none; box-shadow:inset 0 0 0 2px #fff2;}
+.emoji-label{display:block; font-size:9.5px; margin-top:3px; color:var(--ink-soft); font-family:'Inter';}
+.emoji-btn.sel .emoji-label{color:#EAF3EF;}
+
+.section-note{font-size:12px; color:var(--ink-faint); margin:14px 2px 6px;}
+
+/* bottom nav */
+.bottom-nav{
+  position:fixed; bottom:0; left:0; right:0; z-index:30;
+  background:var(--surface); border-top:1px solid var(--line);
+  display:flex; padding:8px 6px calc(8px + env(safe-area-inset-bottom));
+  box-shadow:0 -4px 16px rgba(22,33,28,.06);
+}
+.nav-btn{
+  flex:1; background:none; border:none; display:flex; flex-direction:column; align-items:center; gap:3px;
+  color:var(--ink-faint); font-size:10.5px; font-family:'Inter'; padding:6px 2px; cursor:pointer; border-radius:10px;
+}
+.nav-btn svg{width:20px; height:20px;}
+.nav-btn.active{color:var(--teal);}
+.nav-btn.active svg{stroke:var(--teal);}
+
+/* trends */
+.range-tabs{display:flex; gap:6px; margin-bottom:12px;}
+.range-tabs button{
+  flex:1; padding:8px; border-radius:10px; border:1px solid var(--line); background:#fff; font-size:12.5px; cursor:pointer; font-family:'IBM Plex Mono';
+}
+.range-tabs button.active{background:var(--teal); color:#fff; border-color:var(--teal);}
+.chart-wrap{height:180px; position:relative;}
+.chart-unavailable{height:100%;display:grid;place-items:center;text-align:center;color:var(--ink-soft);font-size:13px;line-height:1.45;padding:16px;background:var(--surface-2);border-radius:12px;}
+.stat-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-top:8px;}
+.stat-box{background:var(--surface-2); border-radius:12px; padding:10px; text-align:center;}
+.stat-box .n{font-family:'IBM Plex Mono'; font-weight:600; font-size:16px;}
+.stat-box .l{font-size:10px; color:var(--ink-soft); text-transform:uppercase; letter-spacing:.04em; margin-top:2px;}
+
+/* insights */
+.insight-item{
+  display:flex; gap:10px; padding:12px 0; border-bottom:1px solid var(--line);
+}
+.insight-item:last-child{border-bottom:none;}
+.insight-dot{width:8px; height:8px; border-radius:50%; margin-top:6px; flex:none;}
+.insight-text b{display:block; font-size:13.5px; margin-bottom:2px;}
+.insight-text span{font-size:12.5px; color:var(--ink-soft); line-height:1.4;}
+.ai-box{border:1px dashed var(--line); border-radius:12px; padding:12px; margin-top:12px;}
+.ai-box textarea{width:100%; min-height:64px; border:1px solid var(--line); border-radius:10px; padding:8px; font-family:'IBM Plex Mono'; font-size:12.5px; resize:vertical;}
+.ai-toggle{display:flex; gap:8px; margin-top:8px;}
+.pill-btn{
+  padding:8px 14px; border-radius:20px; border:1px solid var(--teal); background:var(--teal); color:#fff; font-size:13px; cursor:pointer; font-family:'Inter'; font-weight:600;
+}
+.pill-btn.ghost{background:#fff; color:var(--teal);}
+.ai-output{margin-top:10px; font-size:13.5px; line-height:1.55; white-space:pre-wrap;}
+.key-input{width:100%; padding:9px 10px; border-radius:10px; border:1px solid var(--line); font-family:'IBM Plex Mono'; font-size:12.5px; margin-top:8px;}
+.coach-card{background:linear-gradient(145deg,#FFF8FC,#F4EEFB);border-color:#E8D8EA;}.coach-chat{max-height:260px;overflow-y:auto;display:flex;flex-direction:column;gap:9px;padding:4px 0 8px;}.coach-message{max-width:88%;padding:10px 12px;border-radius:14px;font-size:13px;line-height:1.45;white-space:pre-wrap;}.coach-message.coach{align-self:flex-start;background:#fff;border:1px solid #E8D8EA;color:var(--ink);}.coach-message.user{align-self:flex-end;background:#E7D7F1;color:#38284A;}.coach-form{display:flex;gap:8px;margin-top:8px;align-items:end;}.coach-form textarea{flex:1;min-height:44px;max-height:100px;border:1px solid #D8C5E5;border-radius:12px;padding:10px;font:13px 'Inter',sans-serif;resize:vertical;}.coach-form .pill-btn{background:#7C6A9C;border-color:#7C6A9C;white-space:nowrap;}.coach-disclaimer{font-size:11px;color:var(--ink-faint);margin:8px 2px 0;}
+
+/* settings */
+.settings-group{margin-bottom:6px;}
+.settings-group h4{font-family:'Fraunces',serif; font-size:14px; margin:0 0 8px;}
+.save-bar{
+  position:sticky; bottom:76px; display:flex; justify-content:center; margin-top:4px;
+}
+.toast{
+  position:fixed; bottom:96px; left:50%; transform:translateX(-50%);
+  background:var(--teal-deep); color:#fff; padding:9px 18px; border-radius:20px; font-size:13px;
+  opacity:0; pointer-events:none; transition:opacity .25s ease, transform .25s ease; z-index:50;
+}
+.toast.show{opacity:1; transform:translateX(-50%) translateY(-4px);}
+
+/* local sign-in screen */
+.login-screen{position:fixed;inset:0;z-index:100;background:linear-gradient(145deg,var(--teal-deep),#24594c);display:grid;place-items:center;padding:20px;}
+.login-card{width:min(100%,420px);background:var(--surface);border-radius:24px;padding:30px;box-shadow:0 22px 60px rgba(0,0,0,.25);}
+.login-mark{width:48px;height:48px;display:grid;place-items:center;border-radius:14px;background:var(--teal);color:#fff;font-family:'Fraunces',serif;font-size:26px;margin-bottom:20px;}
+.login-card h1{font-family:'Fraunces',serif;font-size:30px;margin:0 0 8px;}.login-card p{color:var(--ink-soft);font-size:14px;line-height:1.5;margin:0 0 22px;}
+.login-card label{display:block;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-soft);margin-bottom:6px;}
+.login-card input{width:100%;border:1px solid var(--line);border-radius:10px;padding:12px;font:14px 'Inter',sans-serif;margin-bottom:14px;}.login-card button{width:100%;border:0;border-radius:10px;padding:12px;background:var(--teal);color:#fff;font:600 14px 'Inter',sans-serif;cursor:pointer;}.login-note{font-size:11px!important;margin:14px 0 0!important;color:var(--ink-faint)!important;}
+.sign-out{background:none;border:1px solid rgba(255,255,255,.35);color:#EAF3EF;border-radius:8px;padding:5px 8px;font:11px 'Inter',sans-serif;cursor:pointer;}
+</style>
+</head>
+<body>
+
+<section class="login-screen" id="loginScreen" aria-labelledby="loginTitle">
+  <form class="login-card" id="loginForm">
+    <div class="login-mark">P</div>
+    <h1 id="loginTitle">Welcome to Pulse</h1>
+    <p id="loginMessage">Sign in to start tracking your daily wellness.</p>
+    <label for="loginName">Your name</label>
+    <input id="loginName" type="text" autocomplete="name" placeholder="e.g. Riya" required maxlength="50">
+    <button type="submit" id="loginButton">Continue</button>
+    <p class="login-note">Your wellness data stays in this browser on this device.</p>
+  </form>
+</section>
+
+<header class="topbar">
+  <div class="topbar-row">
+    <div class="brand">
+      <svg class="brand-mark" viewBox="0 0 24 24" fill="none"><path d="M2 12h4l2-7 4 14 3-11 2 4h5" stroke="#F7B8CF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span class="brand-name">Pulse</span>
+    </div>
+    <button class="sign-out" id="signOut" type="button">Sign out</button>
+    <div class="date-nav">
+      <button id="prevDay">‹</button>
+      <span class="date-label" id="dateLabel">—</span>
+      <button id="nextDay">›</button>
+    </div>
+  </div>
+  <button class="today-chip" id="jumpToday">jump to today</button>
+
+  <div class="score-row">
+    <div class="ring-wrap">
+      <svg width="74" height="74" viewBox="0 0 74 74">
+        <circle class="ring-bg" cx="37" cy="37" r="30"></circle>
+        <circle class="ring-fg" id="ringFg" cx="37" cy="37" r="30" stroke-dasharray="188.4" stroke-dashoffset="188.4"></circle>
+      </svg>
+      <div class="ring-num" id="ringNum">—</div>
+    </div>
+    <div class="score-meta">
+      <div class="label">Wellness score</div>
+      <div class="sub" id="scoreSub">Log today to see your score</div>
+    </div>
+    <div class="streak-badge">
+      <b id="streakNum">0</b>day streak
+    </div>
+  </div>
+
+  <svg class="pulseline" viewBox="0 0 400 20" preserveAspectRatio="none">
+    <path d="M0,10 L60,10 L75,10 L85,2 L95,18 L105,10 L120,10 L140,10 L150,4 L160,16 L170,10 L400,10"/>
+  </svg>
+</header>
+
+<main>
+
+  <!-- ============ TODAY ============ -->
+  <section class="page active" id="page-today">
+
+    <!-- FOOD / PROTEIN SCORE -->
+    <div class="card">
+      <div class="card-head">
+        <div class="card-title"><span class="icon">🍽</span>Food score — protein</div>
+        <div class="card-readout" id="proteinReadout">0/0g</div>
+      </div>
+      <div class="hint" id="proteinTargetHint">Target: 50g per meal · 150g/day. Adjust in Settings.</div>
+
+      <div id="mealRows"></div>
+    </div>
+
+    <!-- STEPS -->
+    <div class="card">
+      <div class="card-head">
+        <div class="card-title"><span class="icon">👣</span>Steps</div>
+        <div class="card-readout" id="stepsReadout">0</div>
+      </div>
+      <div class="bar-track"><div class="bar-fill" id="stepsBar" style="width:0%; background:var(--teal);"></div></div>
+      <div class="manual-row">
+        <button class="small-btn" data-adj="steps" data-delta="-500">−</button>
+        <input type="number" id="stepsInput" min="0" step="100">
+        <button class="small-btn" data-adj="steps" data-delta="500">+</button>
+        <span class="unit">steps</span>
+      </div>
+      <div class="chip-row" id="stepsChips"></div>
+    </div>
+
+    <!-- WATER -->
+    <div class="card">
+      <div class="card-head">
+        <div class="card-title"><span class="icon">💧</span>Water</div>
+        <div class="card-readout" id="waterReadout">0.0L</div>
+      </div>
+      <div class="bar-track"><div class="bar-fill" id="waterBar" style="width:0%; background:var(--sky);"></div></div>
+      <div class="chip-row">
+        <button class="chip plus" data-water="250">+250ml</button>
+        <button class="chip plus" data-water="500">+500ml</button>
+        <button class="chip plus" data-water="750">+1 bottle (750ml)</button>
+        <button class="chip" id="waterReset">reset</button>
+      </div>
+    </div>
+
+    <!-- SLEEP -->
+    <div class="card">
+      <div class="card-head">
+        <div class="card-title"><span class="icon">🌙</span>Sleep</div>
+        <div class="card-readout" id="sleepReadout">0.0h</div>
+      </div>
+      <div class="bar-track"><div class="bar-fill" id="sleepBar" style="width:0%; background:var(--lilac);"></div></div>
+      <div class="chip-row" id="sleepChips"></div>
+      <div class="field-grid" style="margin-top:10px;">
+        <div class="field">
+          <label>Sleep quality</label>
+          <select id="sleepQuality">
+            <option>Poor</option><option>Fair</option><option selected>Good</option><option>Excellent</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Stress level</label>
+          <select id="stressLevel">
+            <option selected>Low</option><option>Medium</option><option>High</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- HEART RATE + WEIGHT -->
+    <div class="card">
+      <div class="card-head">
+        <div class="card-title"><span class="icon">❤</span>Heart rate & weight</div>
+        <div class="card-readout" id="hrReadout">— bpm</div>
+      </div>
+      <div class="field-grid">
+        <div class="field">
+          <label>Resting HR (bpm)</label>
+          <input type="number" id="hrInput" min="0" placeholder="e.g. 68">
+        </div>
+        <div class="field">
+          <label>Weight (kg)</label>
+          <input type="number" id="weightInput" step="0.1" placeholder="e.g. 62.4">
+        </div>
+      </div>
+      <div class="hint" id="hrRangeHint">Reference range: 60–100 bpm. Adjust in Settings.</div>
+    </div>
+
+    <!-- EXERCISE -->
+    <div class="card">
+      <div class="card-head">
+        <div class="card-title"><span class="icon">🏃</span>Exercise</div>
+        <div class="card-readout" id="exReadout">0 min</div>
+      </div>
+      <div class="chip-row" id="exChips"></div>
+      <div class="field" style="margin-top:8px;">
+        <label>Type (optional)</label>
+        <input type="text" id="exType" placeholder="e.g. Walk, Yoga, Gym">
+      </div>
+    </div>
+
+    <!-- MOOD -->
+    <div class="card">
+      <div class="card-head"><div class="card-title"><span class="icon">🙂</span>Mood & energy</div></div>
+      <div class="emoji-row" id="moodRow"></div>
+      <div class="field" style="margin-top:12px;">
+        <label>Energy level (1–10)</label>
+        <input type="range" id="energyRange" min="1" max="10" value="6" style="width:100%;">
+        <div class="hint" style="text-align:center;" id="energyVal">6 / 10</div>
+      </div>
+    </div>
+
+    <!-- NOTES -->
+    <div class="card">
+      <div class="card-head"><div class="card-title"><span class="icon">📝</span>Notes / symptoms</div></div>
+      <textarea id="notesInput" style="width:100%; min-height:56px; border:1px solid var(--line); border-radius:10px; padding:8px; font-family:Inter; font-size:13px;" placeholder="Optional — anything worth remembering about today"></textarea>
+    </div>
+    <div class="save-bar"><button class="pill-btn" id="saveToday" type="button">Save today's log</button></div>
+
+  </section>
+
+  <!-- ============ TRENDS ============ -->
+  <section class="page" id="page-trends">
+    <div class="range-tabs">
+      <button data-range="1">Today</button>
+      <button data-range="7" class="active">7 days</button>
+      <button data-range="30">30 days</button>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><div class="card-title">Wellness score</div></div>
+      <div class="chart-wrap"><canvas id="chartScore"></canvas></div>
+      <div class="stat-grid" id="scoreStats"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><div class="card-title">Protein (g/day) vs target</div></div>
+      <div class="chart-wrap"><canvas id="chartProtein"></canvas></div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><div class="card-title">Steps</div></div>
+      <div class="chart-wrap"><canvas id="chartSteps"></canvas></div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><div class="card-title">Sleep (hrs)</div></div>
+      <div class="chart-wrap"><canvas id="chartSleep"></canvas></div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><div class="card-title">Water (L)</div></div>
+      <div class="chart-wrap"><canvas id="chartWater"></canvas></div>
+    </div>
+  </section>
+
+  <!-- ============ INSIGHTS ============ -->
+  <section class="page" id="page-insights">
+    <div class="card">
+      <div class="card-head"><div class="card-title">Smart insights</div><div class="card-readout readout-neutral">free</div></div>
+      <div id="insightList"></div>
+      <div class="hint" style="margin-top:8px;">Generated locally from your last 7–30 days. No account or internet needed.</div>
+    </div>
+
+    <div class="card coach-card">
+      <div class="card-head"><div class="card-title">✨ Live care coach</div><div class="card-readout readout-neutral">your API key</div></div>
+      <div class="hint">A gentle, practical companion for PCOD-aware routines, energy, food, movement, and cycle-supportive habits. It uses your own Anthropic API key, stored only in this browser.</div>
+      <input type="password" id="apiKeyInput" class="key-input" placeholder="sk-ant-...">
+      <div class="ai-toggle">
+        <button class="pill-btn" id="runAI">Review my trends</button>
+        <button class="pill-btn ghost" id="clearKey">Clear key</button>
+      </div>
+      <div class="ai-output" id="aiOutput"></div>
+      <div class="coach-chat" id="coachChat" aria-live="polite"><div class="coach-message coach">Hi! I'm your care coach. Ask for a small, realistic idea for today — like a protein snack, a gentle movement break, or an evening wind-down.</div></div>
+      <form class="coach-form" id="coachForm"><textarea id="coachInput" maxlength="500" placeholder="Ask your coach…"></textarea><button class="pill-btn" type="submit">Send</button></form>
+      <p class="coach-disclaimer">For everyday wellness support only — not medical advice, diagnosis, or emergency care.</p>
+    </div>
+  </section>
+
+  <!-- ============ SETTINGS ============ -->
+  <section class="page" id="page-settings">
+    <div class="card">
+      <div class="settings-group">
+        <h4>Protein / food score targets</h4>
+        <div class="field-grid">
+          <div class="field"><label>Per‑meal target (g)</label><input type="number" id="setProteinMeal" value="50"></div>
+          <div class="field"><label>Daily total target (g)</label><input type="number" id="setProteinDay" value="150" disabled></div>
+        </div>
+        <div class="hint">Daily target = per‑meal target × 3 (breakfast, lunch, dinner). Change the per‑meal number and it recalculates.</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="settings-group">
+        <h4>Movement & hydration</h4>
+        <div class="field-grid">
+          <div class="field"><label>Steps target /day</label><input type="number" id="setSteps" value="8000"></div>
+          <div class="field"><label>Water target (ml)</label><input type="number" id="setWater" value="2500"></div>
+          <div class="field"><label>Exercise target (min)</label><input type="number" id="setExercise" value="30"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="settings-group">
+        <h4>Sleep & vitals</h4>
+        <div class="field-grid">
+          <div class="field"><label>Sleep target (hrs)</label><input type="number" id="setSleep" value="7.5" step="0.5"></div>
+          <div class="field"><label>Weight goal (kg, opt.)</label><input type="number" id="setWeightGoal" step="0.1" placeholder="optional"></div>
+          <div class="field"><label>Resting HR — min</label><input type="number" id="setHrMin" value="60"></div>
+          <div class="field"><label>Resting HR — max</label><input type="number" id="setHrMax" value="100"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="settings-group">
+        <h4>Profile</h4>
+        <div class="field-grid">
+          <div class="field"><label>Height (cm, opt.)</label><input type="number" id="setHeight" step="0.1" placeholder="for BMI"></div>
+          <div class="field"><label>Name (opt.)</label><input type="text" id="setName" placeholder="optional"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="settings-group">
+        <h4>Data</h4>
+        <div class="hint">Everything is stored locally in this browser (localStorage). Nothing is uploaded anywhere.</div>
+        <div class="ai-toggle" style="margin-top:10px;">
+          <button class="pill-btn" id="exportData">Export backup (.json)</button>
+          <button class="pill-btn ghost" id="exportCsv">Export CSV</button>
+        </div>
+        <div class="ai-toggle" style="margin-top:8px;">
+          <label class="pill-btn ghost" style="cursor:pointer;">Import backup<input type="file" id="importFile" accept=".json" style="display:none;"></label>
+          <button class="pill-btn ghost" id="wipeData" style="border-color:var(--bad); color:var(--bad);">Erase all data</button>
+        </div>
+      </div>
+    </div>
+
+    <div style="text-align:center; margin:10px 0 4px;">
+      <button class="pill-btn" id="saveSettings">Save settings</button>
+    </div>
+  </section>
+
+</main>
+
+<nav class="bottom-nav">
+  <button class="nav-btn active" data-page="today">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h4l2-7 4 14 3-11 2 4h5"/></svg>
+    Today
+  </button>
+  <button class="nav-btn" data-page="trends">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l4-6 4 3 5-8"/></svg>
+    Trends
+  </button>
+  <button class="nav-btn" data-page="insights">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v5l3 2"/></svg>
+    Insights
+  </button>
+  <button class="nav-btn" data-page="settings">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.34 1.87l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.7 1.7 0 00-1.87-.34 1.7 1.7 0 00-1 1.55V21a2 2 0 01-4 0v-.09a1.7 1.7 0 00-1-1.55 1.7 1.7 0 00-1.87.34l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.7 1.7 0 00.34-1.87 1.7 1.7 0 00-1.55-1H3a2 2 0 010-4h.09a1.7 1.7 0 001.55-1 1.7 1.7 0 00-.34-1.87l-.06-.06a2 2 0 112.83-2.83l.06.06a1.7 1.7 0 001.87.34H9a1.7 1.7 0 001-1.55V3a2 2 0 014 0v.09a1.7 1.7 0 001 1.55 1.7 1.7 0 001.87-.34l.06-.06a2 2 0 112.83 2.83l-.06.06a1.7 1.7 0 00-.34 1.87V9a1.7 1.7 0 001.55 1H21a2 2 0 010 4h-.09a1.7 1.7 0 00-1.55 1z"/></svg>
+    Settings
+  </button>
+</nav>
+
+<div class="toast" id="toast"></div>
+
+<script src="js/pulse.js"></script>
+<script>
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('/sw.js').catch(()=>{});
+}
+</script>
+</body>
+</html>
