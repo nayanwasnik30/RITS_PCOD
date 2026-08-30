@@ -102,9 +102,16 @@ function toast(msg){
 /* ---------- Supabase Auth ---------- */
 const SUPABASE_URL = 'https://ujkupyimtbqzkusiefyb.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVqa3VweWltdGJxemt1c2llZnliIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgxMTEzNDMsImV4cCI6MjEwMzY4NzM0M30.rfJEm7yu0dxuVRkYjNwikeeN7MrhKHAJW_S_Kw9TWnU';
-const { createClient } = window.supabase || {};
-const supabase = createClient ? createClient(SUPABASE_URL, SUPABASE_KEY) : null;
-if(!supabase) console.error('Supabase SDK failed to load');
+let supabase = null;
+try {
+  const mod = window.supabase || window.Supabase;
+  const createClient = (mod && mod.createClient) ? mod.createClient : (mod && mod.default && mod.default.createClient) ? mod.default.createClient : null;
+  if(createClient) {
+    supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+  } else {
+    console.error('Supabase createClient not found. Keys:', Object.keys(window));
+  }
+} catch(e) { console.error('Supabase init error:', e); }
 let currentUser = null;
 
 function showError(msg){
@@ -123,6 +130,7 @@ function hideLogin(){ document.getElementById('loginScreen').hidden = true; }
 document.getElementById('loginForm').addEventListener('submit', async (event)=>{
   event.preventDefault();
   hideError();
+  if(!supabase){ showError('Auth system not loaded. Please refresh the page.'); return; }
   const email = document.getElementById('loginEmail').value.trim();
   const password = document.getElementById('loginPassword').value;
   if(!email || !password) return;
@@ -142,6 +150,7 @@ document.getElementById('loginForm').addEventListener('submit', async (event)=>{
 // Sign up with email/password
 document.getElementById('signUpBtn').addEventListener('click', async ()=>{
   hideError();
+  if(!supabase){ showError('Auth system not loaded. Please refresh the page.'); return; }
   const email = document.getElementById('loginEmail').value.trim();
   const password = document.getElementById('loginPassword').value;
   if(!email || !password){ showError('Please enter email and password.'); return; }
