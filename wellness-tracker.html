@@ -457,18 +457,22 @@ main{padding:16px 14px 8px; max-width:640px; margin:0 auto;}
     </div>
 
     <div class="card coach-card">
-      <div class="card-head"><div class="card-title">✨ Ask Jarvis</div><div class="card-readout readout-neutral" id="jarvisModeLabel">free mode</div></div>
-      <div class="hint">Jarvis is your personal wellness companion for PCOD-aware routines, energy, food, movement, and cycle-supportive habits. Works with your own API key (Anthropic, OpenAI, or Gemini) — or use the <span class="free-badge">FREE</span> mode with no key needed.</div>
+      <div class="card-head"><div class="card-title">✨ Ask Jarvis</div><div class="card-readout readout-neutral" id="jarvisModeLabel">free Gemini</div></div>
+      <div class="hint">Jarvis is your personal wellness companion for PCOD-aware routines, energy, food, movement, and cycle-supportive habits. Get started with <span class="free-badge">FREE</span> Gemini AI — just grab a free key from Google AI Studio (takes 30 seconds, no credit card needed).</div>
 
       <div class="provider-select" id="providerSelect">
-        <button class="provider-btn active" data-provider="free">🆓 Free</button>
+        <button class="provider-btn active" data-provider="gemini">🤖 Gemini (FREE)</button>
         <button class="provider-btn" data-provider="anthropic">Claude</button>
         <button class="provider-btn" data-provider="openai">ChatGPT</button>
-        <button class="provider-btn" data-provider="gemini">Gemini</button>
+        <button class="provider-btn" data-provider="free">🆓 Offline</button>
       </div>
 
-      <div id="apiKeySection" style="display:none;">
-        <input type="password" id="apiKeyInput" class="key-input" placeholder="Paste your API key here…">
+      <div id="apiKeySection">
+        <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;">
+          <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:4px;padding:6px 14px;border-radius:20px;background:linear-gradient(135deg,#4285F4,#34A853);color:#fff;font-size:12px;font-weight:600;text-decoration:none;white-space:nowrap;">🔑 Get free Gemini key</a>
+          <span style="font-size:11px;color:var(--ink-faint);">No credit card · 30 seconds · 100% free</span>
+        </div>
+        <input type="password" id="apiKeyInput" class="key-input" placeholder="Paste your Gemini API key (AIza...)">
         <div class="ai-toggle">
           <button class="pill-btn" id="runAI">Review my trends</button>
           <button class="pill-btn ghost" id="clearKey">Clear key</button>

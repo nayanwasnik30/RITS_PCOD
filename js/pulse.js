@@ -258,8 +258,8 @@ function renderInsights(){
    Supports: Free (local), Anthropic, OpenAI, Google Gemini
    ============================================================ */
 const JARVIS_KEY='pulse_jarvis_v1';
-let jarvisProvider='free', jarvisHistory=[];
-try{ const s=JSON.parse(localStorage.getItem(JARVIS_KEY)||'{}'); jarvisProvider=s.provider||'free'; jarvisHistory=s.history||[]; }catch(e){}
+let jarvisProvider='gemini', jarvisHistory=[];
+try{ const s=JSON.parse(localStorage.getItem(JARVIS_KEY)||'{}'); jarvisProvider=s.provider||'gemini'; jarvisHistory=s.history||[]; }catch(e){}
 function saveJarvis(){ localStorage.setItem(JARVIS_KEY,JSON.stringify({provider:jarvisProvider,history:jarvisHistory.slice(-20)})); }
 function getApiKey(p){ const k=JSON.parse(localStorage.getItem('pulse_ai_keys')||'{}'); return k[p]||''; }
 function saveApiKey(p,k){ const keys=JSON.parse(localStorage.getItem('pulse_ai_keys')||'{}'); keys[p]=k; localStorage.setItem('pulse_ai_keys',JSON.stringify(keys)); }
@@ -269,10 +269,9 @@ const providerSelect=document.getElementById('providerSelect'), apiKeySection=do
 
 function setProvider(p){
   jarvisProvider=p; saveJarvis();
-  providerSelect.querySelectorAll('.btn').forEach(b=>b.classList.toggle('active',b.dataset.provider===p));
   providerSelect.querySelectorAll('.provider-btn').forEach(b=>b.classList.toggle('active',b.dataset.provider===p));
-  if(p==='free'){ apiKeySection.style.display='none'; jarvisLabel.textContent='free mode'; }
-  else{ apiKeySection.style.display=''; apiKeyInput.value=getApiKey(p); apiKeyInput.placeholder={anthropic:'sk-ant-api...',openai:'sk-...',gemini:'AIza...'}[p]||'API key…'; jarvisLabel.textContent=p; }
+  if(p==='free'){ apiKeySection.style.display='none'; jarvisLabel.textContent='offline mode'; jarvisLabel.className='card-readout readout-neutral'; }
+  else{ apiKeySection.style.display=''; apiKeyInput.value=getApiKey(p); const ph={anthropic:'sk-ant-api...',openai:'sk-...',gemini:'AIza...'}[p]||'API key…'; apiKeyInput.placeholder=ph; jarvisLabel.textContent=p+(p==='gemini'?' (free)':''); jarvisLabel.className='card-readout '+(p==='gemini'?'readout-good':'readout-neutral'); }
 }
 providerSelect.addEventListener('click',(e)=>{const b=e.target.closest('.provider-btn');if(b)setProvider(b.dataset.provider);});
 setProvider(jarvisProvider);
@@ -310,7 +309,7 @@ function freeJarvisResponse(question,recentDays){
   }
   if(q.match(/thank|bye|goodnight|good\s*night/)) return "You're welcome! 💜 Take care of yourself tonight. Remember, every small step counts. Sleep well and I'll be here whenever you need me! 🌙";
   // Default
-  return "That's a great question! 💜 Here's what I can help with:\n\n• **Meal ideas** — \"What should I eat for protein?\"\n• **Movement tips** — \"Suggest a gentle exercise\"\n• **Sleep support** — \"Help me wind down tonight\"\n• **Hydration** — \"How's my water intake?\"\n• **Mood & stress** — \"I'm feeling low today\"\n• **PCOD guidance** — \"What helps with PCOD?\"\n\nOr just say hi and I'll check in on your recent data! Your current stats: "+pt+"g protein, "+sa.toLocaleString()+" steps, "+wa+"L water, "+sl+"h sleep.";
+  return "That's a great question! 💜 Here's what I can help with:\n\n• **Meal ideas** — \"What should I eat for protein?\"\n• **Movement tips** — \"Suggest a gentle exercise\"\n• **Sleep support** — \"Help me wind down tonight\"\n• **Hydration** — \"How's my water intake?\"\n• **Mood & stress** — \"I'm feeling low today\"\n• **PCOD guidance** — \"What helps with PCOD?\"\n\nOr just say hi and I'll check in on your recent data!\n\nYour current stats: "+pt+"g protein, "+sa.toLocaleString()+" steps, "+wa+"L water, "+sl+"h sleep.\n\n💡 **Tip:** For smarter AI replies, tap the 🔑 button above to get a free Gemini API key from Google — takes 30 seconds, no credit card needed!";
 }
 
 /* ---------- AI provider calls ---------- */
@@ -341,13 +340,19 @@ async function callJarvisAI(messages, provider, apiKey){
     return (json.choices||[])[0]?.message?.content?.trim()||'';
   }
   if(provider==='gemini'){
+    const geminiContents=messages.map(m=>({role:m.role==='assistant'?'model':'user',parts:[{text:m.content}]}));
     const resp=await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key='+apiKey,{
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({contents:[{role:'user',parts:[{text:JARVIS_SYSTEM+contextData+'\n\nUser: '+messages.map(m=>m.role+': '+m.content).join('\n')}]}]})
+      body:JSON.stringify({
+        system_instruction:{parts:[{text:JARVIS_SYSTEM+contextData}]},
+        contents:geminiContents,
+        generationConfig:{maxOutputTokens:500,temperature:0.7}
+      })
     });
-    if(!resp.ok) throw new Error('API error '+resp.status);
+    if(!resp.ok){ const err=await resp.text(); throw new Error('API error '+resp.status+' — '+(err.includes('API_KEY_INVALID')?'Invalid API key. Get a free one at aistudio.google.com/apikey':err.slice(0,100))); }
     const json=await resp.json();
+    if(json.error) throw new Error(json.error.message||'Gemini error');
     return (json.candidates||[])[0]?.content?.parts?.[0]?.text?.trim()||'';
   }
   throw new Error('Unknown provider');
