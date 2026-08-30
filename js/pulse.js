@@ -102,8 +102,24 @@ function renderStep(){
   STEPS[currentStep].render();
   updateCompactScore();
 }
+function getDefaultDay(){
+  return{protein:{morning:settings.proteinMeal,lunch:settings.proteinMeal,dinner:settings.proteinMeal},steps:settings.steps,waterMl:settings.waterMl,sleepHrs:settings.sleepHrs,sleepQuality:'Good',stress:'Low',hr:null,weight:null,exerciseMin:settings.exerciseMin,exerciseType:'',mood:'Calm',energy:6,notes:''};
+}
 function goStep(dir){
   if(dir===1&&currentStep===STEPS.length-1){saveData();toast("Today's log saved! 💜");return}
+  // on forward, apply defaults for empty fields
+  if(dir===1){
+    const day=getDay(currentDate);
+    const d=getDefaultDay();
+    if(!day.protein.morning&&!day.protein.lunch&&!day.protein.dinner)Object.assign(day.protein,d.protein);
+    if(!day.steps)day.steps=d.steps;
+    if(!day.waterMl)day.waterMl=d.waterMl;
+    if(!day.sleepHrs)day.sleepHrs=d.sleepHrs;
+    if(!day.exerciseMin)day.exerciseMin=d.exerciseMin;
+    if(!day.mood)day.mood=d.mood;
+    if(day.energy===6)day.energy=d.energy;
+    saveData();
+  }
   currentStep=Math.max(0,Math.min(STEPS.length-1,currentStep+dir));
   renderStep();
 }
@@ -114,28 +130,33 @@ document.getElementById('stepNext').addEventListener('click',()=>goStep(1));
 function renderFoodStep(){
   const day=getDay(currentDate),meals=['morning','lunch','dinner'];
   let total=0;const tgt=settings.proteinMeal*3;
-  let html='<div style="font-size:14px;font-weight:600;margin-bottom:10px;">🍽 Food score — protein</div>';
+  const p=Math.min(100,(total/tgt)*100);
+  let html='<div style="font-size:14px;font-weight:600;margin-bottom:10px;">🍽 Food · Protein</div>';
   meals.forEach(k=>{
     const v=day.protein[k]||0;total+=v;
     const pct2=Math.min(100,(v/settings.proteinMeal)*100);
-    const color=v/settings.proteinMeal>=1?'var(--good)':(v/settings.proteinMeal>=.6?'var(--warn)':'var(--bad)');
-    html+=`<div style="margin-bottom:10px;"><div style="display:flex;justify-content:space-between;font-size:13px;font-weight:500;"><span>${k==='morning'?'Breakfast':k==='lunch'?'Lunch':'Dinner'}</span><span class="mono" style="color:var(--ink-soft);">${v}g / ${settings.proteinMeal}g</span></div><div class="bar-track"><div class="bar-fill" style="width:${pct2}%;background:${color};"></div></div><div class="chip-row" style="margin-top:6px;">${[6,10,18,20,25,30].map(g=>`<button class="chip" onclick="addProtein('${k}',${g})">${g}g</button>`).join('')}</div></div>`;
+    const emoji=pct2>=100?'✅':pct2>=60?'👍':'❗';
+    html+=`<div style="margin-bottom:10px;"><div style="display:flex;justify-content:space-between;font-size:13px;font-weight:500;"><span>${emoji} ${k==='morning'?'Breakfast':k==='lunch'?'Lunch':'Dinner'}</span><span style="color:var(--ink-soft);font-size:12px;">${pct2>=100?'done!':pct2+'%'}</span></div><div class="bar-track"><div class="bar-fill" style="width:${pct2}%;background:linear-gradient(90deg,rgba(200,95,135,.4),var(--teal));"></div></div><div class="chip-row" style="margin-top:6px;">${[6,10,18,20,25,30].map(g=>`<button class="chip" onclick="addProtein('${k}',${g})">${g}g</button>`).join('')}</div></div>`;
   });
-  html+=`<div style="text-align:center;font-family:'IBM Plex Mono';font-size:14px;padding:8px;background:rgba(200,95,135,.08);border-radius:12px;">${total}g / ${tgt}g total</div>`;
+  const totalPct=Math.min(100,(total/tgt)*100);
+  const totalEmoji=totalPct>=100?'🎉':totalPct>=60?'💪':'❗';
+  html+=`<div style="text-align:center;font-size:13px;padding:8px;background:rgba(200,95,135,.08);border-radius:12px;">${totalEmoji} ${totalPct>=100?'Protein goal hit!':totalPct+'% of daily goal'}</div>`;
   document.getElementById('stepContent').innerHTML=html;
 }
 window.addProtein=function(k,g){const day=getDay(currentDate);day.protein[k]+=g;saveData();renderStep()};
 
 function renderStepsStep(){
   const day=getDay(currentDate),s=day.steps,tgt=settings.steps,p=Math.min(100,(s/tgt)*100);
+  const emoji=p>=100?'🎉':p>=75?'💪':p>=50?'🚶':p>=25?'👟':'😴';
+  const msg=p>=100?'Crushing it!':p>=75?'Almost there!':p>=50?'Good start!':p>=25?'Keep going!':'Let\'s move!';
   document.getElementById('stepContent').innerHTML=`
     <div style="font-size:14px;font-weight:600;margin-bottom:10px;">👣 Steps</div>
-    <div style="text-align:center;font-family:'IBM Plex Mono';font-size:28px;font-weight:700;margin:8px 0;">${s.toLocaleString()}</div>
-    <div class="bar-track"><div class="bar-fill" style="width:${p}%;background:var(--teal);"></div></div>
-    <div style="text-align:center;font-size:12px;color:var(--ink-faint);margin:4px 0;">Target: ${tgt.toLocaleString()}</div>
+    <div style="text-align:center;font-size:36px;margin:6px 0;">${emoji}</div>
+    <div style="text-align:center;font-size:13px;color:var(--ink-soft);margin-bottom:8px;">${msg}</div>
+    <div class="bar-track" style="height:10px;"><div class="bar-fill" style="width:${p}%;background:linear-gradient(90deg,var(--teal),var(--coral));"></div></div>
     <div style="display:flex;gap:8px;align-items:center;justify-content:center;margin:10px 0;">
       <button class="small-btn" onclick="adjSteps(-500)">−</button>
-      <input type="number" id="stepsInput" value="${s}" min="0" step="100" onchange="setSteps(this.value)" style="width:80px;padding:8px;text-align:center;border-radius:10px;border:1px solid rgba(255,255,255,.4);background:rgba(255,255,255,.35);font-family:'IBM Plex Mono';font-size:16px;">
+      <input type="number" id="stepsInput" value="${s}" min="0" step="100" onchange="setSteps(this.value)" style="width:70px;padding:8px;text-align:center;border-radius:10px;border:1px solid rgba(255,255,255,.4);background:rgba(255,255,255,.35);font-family:'IBM Plex Mono';font-size:14px;">
       <button class="small-btn" onclick="adjSteps(500)">+</button>
     </div>
     <div class="chip-row" style="justify-content:center;">${[2000,5000,8000,10000,12000].map(v=>`<button class="chip" onclick="setSteps(${v})">${v.toLocaleString()}</button>`).join('')}</div>`;
@@ -144,12 +165,14 @@ window.adjSteps=function(d){const day=getDay(currentDate);day.steps=Math.max(0,d
 window.setSteps=function(v){getDay(currentDate).steps=Math.max(0,parseInt(v)||0);saveData();renderStep()};
 
 function renderWaterStep(){
-  const day=getDay(currentDate),ml=day.waterMl,L=(ml/1000).toFixed(2),tgt=settings.waterMl,p=Math.min(100,(ml/tgt)*100);
+  const day=getDay(currentDate),ml=day.waterMl,tgt=settings.waterMl,p=Math.min(100,(ml/tgt)*100);
+  const emoji=p>=100?'🌊':p>=75?'💧':p>=50?'🥤':p>=25?'🫗':'🏜️';
+  const msg=p>=100?'Fully hydrated!':p>=75?'Almost full!':p>=50?'Halfway!':p>=25?'Sip more!':'Need water!';
   document.getElementById('stepContent').innerHTML=`
     <div style="font-size:14px;font-weight:600;margin-bottom:10px;">💧 Water</div>
-    <div style="text-align:center;font-family:'IBM Plex Mono';font-size:28px;font-weight:700;margin:8px 0;">${L}L</div>
-    <div class="bar-track"><div class="bar-fill" style="width:${p}%;background:var(--sky);"></div></div>
-    <div style="text-align:center;font-size:12px;color:var(--ink-faint);margin:4px 0;">Target: ${(tgt/1000).toFixed(1)}L</div>
+    <div style="text-align:center;font-size:36px;margin:6px 0;">${emoji}</div>
+    <div style="text-align:center;font-size:13px;color:var(--ink-soft);margin-bottom:8px;">${msg}</div>
+    <div class="bar-track" style="height:10px;"><div class="bar-fill" style="width:${p}%;background:linear-gradient(90deg,var(--sky),var(--lilac));"></div></div>
     <div class="chip-row" style="justify-content:center;margin-top:10px;">
       <button class="chip plus" onclick="addWater(250)">+250ml</button>
       <button class="chip plus" onclick="addWater(500)">+500ml</button>
@@ -162,10 +185,13 @@ window.setWater=function(v){getDay(currentDate).waterMl=v;saveData();renderStep(
 
 function renderSleepStep(){
   const day=getDay(currentDate),h=day.sleepHrs||0,tgt=settings.sleepHrs,p=Math.min(100,(h/tgt)*100);
+  const emoji=h>=8?'😴':h>=7?'😌':h>=6?'🥱':h>=5?'😵':'💤';
+  const msg=h>=8?'Slept like a baby!':h>=7?'Solid rest!':h>=6?'Could be more':h>=5?'Tired?':'Need sleep!';
   document.getElementById('stepContent').innerHTML=`
     <div style="font-size:14px;font-weight:600;margin-bottom:10px;">🌙 Sleep</div>
-    <div style="text-align:center;font-family:'IBM Plex Mono';font-size:28px;font-weight:700;margin:8px 0;">${h.toFixed(1)}h</div>
-    <div class="bar-track"><div class="bar-fill" style="width:${p}%;background:var(--lilac);"></div></div>
+    <div style="text-align:center;font-size:36px;margin:6px 0;">${emoji}</div>
+    <div style="text-align:center;font-size:13px;color:var(--ink-soft);margin-bottom:8px;">${msg}</div>
+    <div class="bar-track" style="height:10px;"><div class="bar-fill" style="width:${p}%;background:linear-gradient(90deg,var(--lilac),var(--teal));"></div></div>
     <div class="chip-row" style="justify-content:center;margin:10px 0;">${[5,6,6.5,7,7.5,8,9].map(v=>`<button class="chip${h===v?' plus':''}" onclick="setSleep(${v})">${v}h</button>`).join('')}</div>
     <div class="field-grid">
       <div class="field"><label>Quality</label><select id="sleepQuality" onchange="getDay(currentDate).sleepQuality=this.value;saveData()"><option>Poor</option><option>Fair</option><option ${day.sleepQuality==='Good'?'selected':''}>Good</option><option>Excellent</option></select></div>
@@ -186,10 +212,14 @@ function renderVitalsStep(){
 }
 
 function renderExerciseStep(){
-  const day=getDay(currentDate),m=day.exerciseMin||0;
+  const day=getDay(currentDate),m=day.exerciseMin||0,tgt=settings.exerciseMin,p=Math.min(100,(m/tgt)*100);
+  const emoji=p>=100?'🏆':p>=75?'💪':p>=50?'🏃':p>=25?'🚶':'🛋️';
+  const msg=p>=100?'Workout done!':p>=75?'Great session!':p>=50?'Moving!':p>=25?'Light activity':'Rest day?';
   document.getElementById('stepContent').innerHTML=`
     <div style="font-size:14px;font-weight:600;margin-bottom:10px;">🏃 Exercise</div>
-    <div style="text-align:center;font-family:'IBM Plex Mono';font-size:28px;font-weight:700;margin:8px 0;">${m} min</div>
+    <div style="text-align:center;font-size:36px;margin:6px 0;">${emoji}</div>
+    <div style="text-align:center;font-size:13px;color:var(--ink-soft);margin-bottom:8px;">${msg}</div>
+    <div class="bar-track" style="height:10px;"><div class="bar-fill" style="width:${p}%;background:linear-gradient(90deg,var(--amber),var(--coral));"></div></div>
     <div class="chip-row" style="justify-content:center;margin:10px 0;">${[0,15,30,45,60,90].map(v=>`<button class="chip${m===v?' plus':''}" onclick="setEx(${v})">${v}m</button>`).join('')}</div>
     <div class="field" style="margin-top:8px;"><label>Type (optional)</label><input type="text" id="exType" value="${day.exerciseType||''}" placeholder="e.g. Walk, Yoga, Gym" onchange="getDay(currentDate).exerciseType=this.value;saveData()"></div>`;
 }
@@ -227,7 +257,8 @@ function computeScore(day){
 function computeStreak(){let s=0;let d=new Date(todayStr()+'T00:00:00');while(true){const ds=fmtDate(d),day=data[ds];if(day&&computeScore(Object.assign(emptyDay(),day))!==null){s++;d.setDate(d.getDate()-1)}else break}return s}
 function updateCompactScore(){
   const day=getDay(currentDate),score=computeScore(day);
-  document.getElementById('ringNum').textContent=score===null?'—':score;
+  const emoji=score===null?'—':score>=85?'✨':score>=65?'👍':'⚠️';
+  document.getElementById('ringNum').textContent=score===null?'—':emoji+' '+score;
   const el=document.getElementById('scoreMini');
   if(score!==null){el.style.background=score>=85?'rgba(182,90,123,.3)':score>=65?'rgba(212,154,88,.3)':'rgba(198,87,110,.3)'}
 }
@@ -294,11 +325,17 @@ function renderInsights(){
   const days=lastNDays(7),rows=days.map(d=>data[d]?Object.assign(emptyDay(),data[d]):null).filter(r=>r!==null),list=document.getElementById('insightList');list.innerHTML='';
   if(rows.length<2){list.innerHTML='<div class="insight-item"><div class="insight-dot" style="background:var(--ink-faint);"></div><div class="insight-text"><b>Not enough data</b><span>Log 2+ days for insights.</span></div></div>';return}
   const ins=[],ptgt=settings.proteinMeal*3,pa=avg(rows.map(r=>r.protein.morning+r.protein.lunch+r.protein.dinner));
-  ins.push({l:pa>=ptgt?'good':pa>=ptgt*.7?'warn':'bad',t:'Protein: '+Math.round(pa)+'g/day',b:'Target: '+ptgt+'g.'});
-  const sa=avg(rows.map(r=>r.steps));ins.push({l:sa>=settings.steps?'good':'warn',t:'Steps: '+Math.round(sa).toLocaleString()+'/day',b:'Target: '+settings.steps.toLocaleString()+'.'});
-  const sla=avg(rows.map(r=>r.sleepHrs).filter(v=>v>0));if(sla)ins.push({l:Math.abs(sla-settings.sleepHrs)<=.5?'good':'warn',t:'Sleep: '+sla.toFixed(1)+'h',b:'Target: '+settings.sleepHrs+'h.'});
-  const wa2=avg(rows.map(r=>r.waterMl));ins.push({l:wa2>=settings.waterMl?'good':'warn',t:'Water: '+(wa2/1000).toFixed(1)+'L/day',b:'Target: '+(settings.waterMl/1000).toFixed(1)+'L.'});
-  const ed=rows.filter(r=>r.exerciseMin>0).length;ins.push({l:ed>=rows.length*.7?'good':'warn',t:'Exercise: '+ed+'/'+rows.length+' days',b:'Avg '+Math.round(avg(rows.map(r=>r.exerciseMin)))+' min.'});
+  const paPct=Math.min(100,Math.round(pa/ptgt*100));
+  ins.push({l:paPct>=100?'good':paPct>=70?'warn':'bad',t:'🍽 Protein',b:paPct>=100?'Goal hit daily!':paPct+'% average — try adding one more source'});
+  const sa=avg(rows.map(r=>r.steps)),saPct=Math.min(100,Math.round(sa/settings.steps*100));
+  ins.push({l:saPct>=100?'good':saPct>=70?'warn':'bad',t:'👣 Movement',b:saPct>=100?'Step goal crushed!':saPct+'% average — a 10-min walk helps'});
+  const sla=avg(rows.map(r=>r.sleepHrs).filter(v=>v>0));if(sla){
+  const slPct=Math.min(100,Math.round(sla/settings.sleepHrs*100));
+  ins.push({l:slPct>=90?'good':'warn',t:'🌙 Rest',b:slPct>=90?'Sleep is on point!':'Running a bit low — wind down earlier'});}
+  const wa2=avg(rows.map(r=>r.waterMl)),wPct=Math.min(100,Math.round(wa2/settings.waterMl*100));
+  ins.push({l:wPct>=100?'good':wPct>=70?'warn':'bad',t:'💧 Hydration',b:wPct>=100?'Fully hydrated!':'A couple extra glasses would help'});
+  const ed=rows.filter(r=>r.exerciseMin>0).length,edPct=Math.round(ed/rows.length*100);
+  ins.push({l:edPct>=70?'good':edPct>=40?'warn':'bad',t:'🏃 Active days',b:edPct>=70?'Moving most days!':'Try to move a little more often'});
   const cm={good:'var(--good)',warn:'var(--warn)',bad:'var(--bad)'};
   ins.forEach(i=>{const d=document.createElement('div');d.className='insight-item';d.innerHTML='<div class="insight-dot" style="background:'+cm[i.l]+'"></div><div class="insight-text"><b>'+i.t+'</b><span>'+i.b+'</span></div>';list.appendChild(d)});
 }
