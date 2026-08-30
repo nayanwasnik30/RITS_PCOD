@@ -332,8 +332,19 @@ main{padding:16px 14px 8px;max-width:640px;margin:0 auto;}
       <!-- step content area -->
       <div id="stepContent"></div>
 
+      <!-- honor badge -->
+      <div id="honorBadge" style="display:none;margin-top:10px;padding:10px 14px;background:linear-gradient(135deg,rgba(212,154,88,.15),rgba(200,95,135,.1));border:1px solid rgba(212,154,88,.3);border-radius:14px;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span style="font-size:20px;">🏆</span>
+          <div>
+            <div style="font-size:13px;font-weight:600;color:var(--amber);">Honor</div>
+            <div style="font-size:12px;color:var(--ink-soft);margin-top:2px;" id="honorText"></div>
+          </div>
+        </div>
+      </div>
+
       <!-- nav buttons -->
-      <div style="display:flex;gap:8px;margin-top:14px;">
+      <div style="display:flex;gap:8px;margin-top:10px;">
         <button class="pill-btn ghost" id="stepPrev" style="flex:1;">← Back</button>
         <button class="pill-btn" id="stepNext" style="flex:1;">Next →</button>
       </div>
