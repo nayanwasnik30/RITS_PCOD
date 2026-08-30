@@ -1,8 +1,8 @@
 /* ============================================================
-   PULSE — Daily Wellness Tracker v1.0.0008
+   PULSE — Daily Wellness Tracker v2.0.0001
    All data stored in localStorage under key "pulse_v1"
    ============================================================ */
-console.log('Pulse v1.0.0008 loaded');
+console.log('Pulse v2.0.0001 loaded');
 window.__PULSE_VERSION = '1.0.0008';
 
 const STORE_KEY = 'pulse_data_v1';

@@ -266,7 +266,7 @@ main{padding:16px 14px 8px; max-width:640px; margin:0 auto;}
     <button type="submit" id="loginButton">Sign in</button>
     <button type="button" id="signUpBtn" style="width:100%;margin-top:8px;border:1px solid #ddd;background:#fff;color:#3F2734;border-radius:10px;padding:12px;font:600 14px 'Inter',sans-serif;cursor:pointer;">Create account</button>
     <p class="login-note">Made with 💜 for someone who truly loves you.</p>
-    <p style="text-align:center;font-size:10px;color:#ccc;margin-top:8px;">v1.0.0008</p>
+    <p style="text-align:center;font-size:10px;color:#ccc;margin-top:8px;">v2.0.0001</p>
   </form>
 </section>
 
@@ -578,7 +578,7 @@ main{padding:16px 14px 8px; max-width:640px; margin:0 auto;}
 <div class="toast" id="toast"></div>
 
 <script>
-/* v1.0.0008 — Force-bust old caches */
+/* v2.0.0001 — Force-bust old caches */
 (function(){
   if('serviceWorker' in navigator){
     navigator.serviceWorker.getRegistrations().then(function(r){r.forEach(function(reg){reg.unregister()})});
@@ -588,7 +588,7 @@ main{padding:16px 14px 8px; max-width:640px; margin:0 auto;}
   }
 })();
 </script>
-<script src="js/pulse.js?v=8"></script>
+<script src="js/pulse.js?v=2.1"></script>
 <script>
 /* Check that new code loaded — if stale, force reload */
 if(!window.__PULSE_VERSION || window.__PULSE_VERSION !== '1.0.0008'){
@@ -597,10 +597,10 @@ if(!window.__PULSE_VERSION || window.__PULSE_VERSION !== '1.0.0008'){
   if('serviceWorker' in navigator) navigator.serviceWorker.getRegistrations().then(function(r){r.forEach(function(reg){reg.unregister()})});
   setTimeout(function(){ location.reload(true); }, 500);
 } else {
-  console.log('Pulse v1.0.0008 verified');
+  console.log('Pulse v2.0.0001 verified');
 }
 if('serviceWorker' in navigator){
-  navigator.serviceWorker.register('/sw.js?v=8').catch(()=>{});
+  navigator.serviceWorker.register('/sw.js?v=2.1').catch(()=>{});
 }
 </script>
 </body>
