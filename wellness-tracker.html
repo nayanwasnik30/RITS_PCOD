@@ -202,6 +202,12 @@ main{padding:16px 14px 8px; max-width:640px; margin:0 auto;}
 .ai-output{margin-top:10px; font-size:13.5px; line-height:1.55; white-space:pre-wrap;}
 .key-input{width:100%; padding:9px 10px; border-radius:10px; border:1px solid var(--line); font-family:'IBM Plex Mono'; font-size:12.5px; margin-top:8px;}
 .coach-card{background:linear-gradient(145deg,#FFF8FC,#F4EEFB);border-color:#E8D8EA;}.coach-chat{max-height:260px;overflow-y:auto;display:flex;flex-direction:column;gap:9px;padding:4px 0 8px;}.coach-message{max-width:88%;padding:10px 12px;border-radius:14px;font-size:13px;line-height:1.45;white-space:pre-wrap;}.coach-message.coach{align-self:flex-start;background:#fff;border:1px solid #E8D8EA;color:var(--ink);}.coach-message.user{align-self:flex-end;background:#E7D7F1;color:#38284A;}.coach-form{display:flex;gap:8px;margin-top:8px;align-items:end;}.coach-form textarea{flex:1;min-height:44px;max-height:100px;border:1px solid #D8C5E5;border-radius:12px;padding:10px;font:13px 'Inter',sans-serif;resize:vertical;}.coach-form .pill-btn{background:#7C6A9C;border-color:#7C6A9C;white-space:nowrap;}.coach-disclaimer{font-size:11px;color:var(--ink-faint);margin:8px 2px 0;}
+.provider-select{display:flex;gap:6px;margin-top:8px;margin-bottom:4px;flex-wrap:wrap;}
+.provider-btn{padding:6px 12px;border-radius:20px;border:1px solid var(--line);background:#fff;color:var(--ink);font-size:12px;cursor:pointer;font-family:'Inter';}
+.provider-btn.active{background:var(--teal);color:#fff;border-color:var(--teal);}
+.free-badge{display:inline-block;background:linear-gradient(135deg,#6DBF8B,#4CAF50);color:#fff;font-size:10px;padding:2px 8px;border-radius:10px;font-weight:600;margin-left:4px;}
+.jarvis-avatar{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#7C6A9C,#A878B8);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;align-self:flex-start;}
+.jarvis-avatar.user-av{background:linear-gradient(135deg,var(--teal),var(--coral));}
 
 /* settings */
 .settings-group{margin-bottom:6px;}
@@ -243,7 +249,7 @@ main{padding:16px 14px 8px; max-width:640px; margin:0 auto;}
     <button type="submit" id="loginButton">Sign in</button>
     <button type="button" id="signUpBtn" style="width:100%;margin-top:8px;border:1px solid #ddd;background:#fff;color:#3F2734;border-radius:10px;padding:12px;font:600 14px 'Inter',sans-serif;cursor:pointer;">Create account</button>
     <p class="login-note">Your wellness data stays in this browser on this device.</p>
-    <p style="text-align:center;font-size:10px;color:#ccc;margin-top:8px;">v1.0.0008</p>
+    <p style="text-align:center;font-size:10px;color:#ccc;margin-top:8px;">v1.0.0009</p>
   </form>
 </section>
 
@@ -451,17 +457,28 @@ main{padding:16px 14px 8px; max-width:640px; margin:0 auto;}
     </div>
 
     <div class="card coach-card">
-      <div class="card-head"><div class="card-title">✨ Live care coach</div><div class="card-readout readout-neutral">your API key</div></div>
-      <div class="hint">A gentle, practical companion for PCOD-aware routines, energy, food, movement, and cycle-supportive habits. It uses your own Anthropic API key, stored only in this browser.</div>
-      <input type="password" id="apiKeyInput" class="key-input" placeholder="sk-ant-...">
-      <div class="ai-toggle">
-        <button class="pill-btn" id="runAI">Review my trends</button>
-        <button class="pill-btn ghost" id="clearKey">Clear key</button>
+      <div class="card-head"><div class="card-title">✨ Ask Jarvis</div><div class="card-readout readout-neutral" id="jarvisModeLabel">free mode</div></div>
+      <div class="hint">Jarvis is your personal wellness companion for PCOD-aware routines, energy, food, movement, and cycle-supportive habits. Works with your own API key (Anthropic, OpenAI, or Gemini) — or use the <span class="free-badge">FREE</span> mode with no key needed.</div>
+
+      <div class="provider-select" id="providerSelect">
+        <button class="provider-btn active" data-provider="free">🆓 Free</button>
+        <button class="provider-btn" data-provider="anthropic">Claude</button>
+        <button class="provider-btn" data-provider="openai">ChatGPT</button>
+        <button class="provider-btn" data-provider="gemini">Gemini</button>
       </div>
+
+      <div id="apiKeySection" style="display:none;">
+        <input type="password" id="apiKeyInput" class="key-input" placeholder="Paste your API key here…">
+        <div class="ai-toggle">
+          <button class="pill-btn" id="runAI">Review my trends</button>
+          <button class="pill-btn ghost" id="clearKey">Clear key</button>
+        </div>
+      </div>
+
       <div class="ai-output" id="aiOutput"></div>
-      <div class="coach-chat" id="coachChat" aria-live="polite"><div class="coach-message coach">Hi! I'm your care coach. Ask for a small, realistic idea for today — like a protein snack, a gentle movement break, or an evening wind-down.</div></div>
-      <form class="coach-form" id="coachForm"><textarea id="coachInput" maxlength="500" placeholder="Ask your coach…"></textarea><button class="pill-btn" type="submit">Send</button></form>
-      <p class="coach-disclaimer">For everyday wellness support only — not medical advice, diagnosis, or emergency care.</p>
+      <div class="coach-chat" id="coachChat" aria-live="polite"><div class="coach-message coach"><div style="display:flex;gap:8px;align-items:start;"><div class="jarvis-avatar">💜</div><div>Hi! I'm <b>Jarvis</b>, your personal wellness companion. Ask me anything — a protein snack idea, a gentle movement break, or an evening wind-down. I'm here for you!</div></div></div></div>
+      <form class="coach-form" id="coachForm"><textarea id="coachInput" maxlength="500" placeholder="Ask Jarvis anything…"></textarea><button class="pill-btn" type="submit">Send</button></form>
+      <p class="coach-disclaimer">Jarvis is for everyday wellness support only — not medical advice, diagnosis, or emergency care.</p>
     </div>
   </section>
 
@@ -555,7 +572,7 @@ main{padding:16px 14px 8px; max-width:640px; margin:0 auto;}
 <div class="toast" id="toast"></div>
 
 <script>
-/* v1.0.0008 — Force-bust old caches */
+/* v1.0.0009 — Force-bust old caches */
 (function(){
   if('serviceWorker' in navigator){
     navigator.serviceWorker.getRegistrations().then(function(r){r.forEach(function(reg){reg.unregister()})});
@@ -565,19 +582,19 @@ main{padding:16px 14px 8px; max-width:640px; margin:0 auto;}
   }
 })();
 </script>
-<script src="js/pulse.js?v=8"></script>
+<script src="js/pulse.js?v=9"></script>
 <script>
 /* Check that new code loaded — if stale, force reload */
-if(!window.__PULSE_VERSION || window.__PULSE_VERSION !== '1.0.0008'){
+if(!window.__PULSE_VERSION || window.__PULSE_VERSION !== '1.0.0009'){
   console.warn('Stale Pulse code detected — forcing cache refresh');
   if('caches' in window) caches.keys().then(function(k){k.forEach(function(n){caches.delete(n)})});
   if('serviceWorker' in navigator) navigator.serviceWorker.getRegistrations().then(function(r){r.forEach(function(reg){reg.unregister()})});
   setTimeout(function(){ location.reload(true); }, 500);
 } else {
-  console.log('Pulse v1.0.0008 verified');
+  console.log('Pulse v1.0.0009 verified');
 }
 if('serviceWorker' in navigator){
-  navigator.serviceWorker.register('/sw.js?v=8').catch(()=>{});
+  navigator.serviceWorker.register('/sw.js?v=9').catch(()=>{});
 }
 </script>
 </body>
