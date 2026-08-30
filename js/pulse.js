@@ -104,9 +104,11 @@ function renderStep(){
   if(isToday)checkHonor();
 }
 function goStep(dir){
-  saveData(); // auto-save on every step
+  saveData();
   currentStep=Math.max(0,Math.min(STEPS.length-1,currentStep+dir));
   renderStep();
+  // auto-show honor popup when reaching step 6+ (most tabs filled)
+  if(dir===1&&currentStep>=5&&honorData.length>0){setTimeout(()=>openHonorModal(),400);}
   if(currentStep===STEPS.length-1)toast('Auto-saved ✓');
 }
 document.getElementById('stepPrev').addEventListener('click',()=>goStep(-1));
@@ -255,29 +257,35 @@ function updateCompactScore(){
 }
 
 /* ---- Honor: compare today vs all previous days ---- */
+let honorData=[];
 function checkHonor(){
-  const card=document.getElementById('honorCard');
-  const list=document.getElementById('honorList');
-  if(!card||!list)return;
   const today=getDay(currentDate);
   const todayDate=currentDate;
   const prevDays=Object.keys(data).filter(d=>d<todayDate).map(d=>Object.assign(emptyDay(),data[d]));
-  if(prevDays.length===0){card.style.display='none';return;}
-  const honors=[];
+  honorData=[];
+  if(prevDays.length===0){showHonorIcon(false);return;}
   const todayTotal=today.protein.morning+today.protein.lunch+today.protein.dinner;
   const prevMax=prevDays.length?Math.max(...prevDays.map(d=>d.protein.morning+d.protein.lunch+d.protein.dinner)):0;
-  if(todayTotal>0&&todayTotal>prevMax)honors.push({icon:'🥇',text:'Best protein day',detail:todayTotal+'g (prev: '+prevMax+'g)',color:'rgba(247,184,207,.15)'});
-  if(today.steps>0){const prevSteps=Math.max(...prevDays.map(d=>d.steps));if(today.steps>prevSteps)honors.push({icon:'🥇',text:'Best step day',detail:today.steps.toLocaleString()+' (prev: '+prevSteps.toLocaleString()+')',color:'rgba(165,139,197,.15)'});}
-  if(today.waterMl>0){const prevWater=Math.max(...prevDays.map(d=>d.waterMl));if(today.waterMl>prevWater)honors.push({icon:'🥇',text:'Most hydrated day',detail:(today.waterMl/1000).toFixed(1)+'L (prev: '+(prevWater/1000).toFixed(1)+'L)',color:'rgba(139,138,199,.15)'});}
-  if(today.sleepHrs>0){const prevSleep=Math.max(...prevDays.map(d=>d.sleepHrs));if(today.sleepHrs>prevSleep)honors.push({icon:'🥇',text:'Best sleep day',detail:today.sleepHrs+'h (prev: '+prevSleep+'h)',color:'rgba(212,155,189,.15)'});}
-  if(today.exerciseMin>0){const prevEx=Math.max(...prevDays.map(d=>d.exerciseMin));if(today.exerciseMin>prevEx)honors.push({icon:'🥇',text:'Most active day',detail:today.exerciseMin+'min (prev: '+prevEx+'min)',color:'rgba(212,154,88,.15)'});}
+  if(todayTotal>0&&todayTotal>prevMax)honorData.push({icon:'🥇',text:'Best protein day',detail:todayTotal+'g (prev: '+prevMax+'g)',color:'rgba(247,184,207,.15)'});
+  if(today.steps>0){const prevSteps=Math.max(...prevDays.map(d=>d.steps));if(today.steps>prevSteps)honorData.push({icon:'🥇',text:'Best step day',detail:today.steps.toLocaleString()+' (prev: '+prevSteps.toLocaleString()+')',color:'rgba(165,139,197,.15)'});}
+  if(today.waterMl>0){const prevWater=Math.max(...prevDays.map(d=>d.waterMl));if(today.waterMl>prevWater)honorData.push({icon:'🥇',text:'Most hydrated day',detail:(today.waterMl/1000).toFixed(1)+'L (prev: '+(prevWater/1000).toFixed(1)+'L)',color:'rgba(139,138,199,.15)'});}
+  if(today.sleepHrs>0){const prevSleep=Math.max(...prevDays.map(d=>d.sleepHrs));if(today.sleepHrs>prevSleep)honorData.push({icon:'🥇',text:'Best sleep day',detail:today.sleepHrs+'h (prev: '+prevSleep+'h)',color:'rgba(212,155,189,.15)'});}
+  if(today.exerciseMin>0){const prevEx=Math.max(...prevDays.map(d=>d.exerciseMin));if(today.exerciseMin>prevEx)honorData.push({icon:'🥇',text:'Most active day',detail:today.exerciseMin+'min (prev: '+prevEx+'min)',color:'rgba(212,154,88,.15)'});}
   const todayScore=computeScore(today);
-  if(todayScore!==null){const prevScores=prevDays.map(d=>computeScore(d)).filter(s=>s!==null);const prevBest=prevScores.length?Math.max(...prevScores):0;if(todayScore>prevBest)honors.push({icon:'🏆',text:'Personal best score',detail:todayScore+'/100 (prev: '+prevBest+')',color:'rgba(200,95,135,.12)'});}
-  if(honors.length>0){
-    card.style.display='';
-    list.innerHTML=honors.map(h=>`<div style="display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:12px;background:${h.color};backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.3);"><span style="font-size:18px;">${h.icon}</span><div><div style="font-size:13px;font-weight:600;">${h.text}</div><div style="font-size:11px;color:var(--ink-soft);margin-top:1px;">${h.detail}</div></div></div>`).join('');
-  }else{card.style.display='none';}
+  if(todayScore!==null){const prevScores=prevDays.map(d=>computeScore(d)).filter(s=>s!==null);const prevBest=prevScores.length?Math.max(...prevScores):0;if(todayScore>prevBest)honorData.push({icon:'🏆',text:'Personal best score',detail:todayScore+'/100 (prev: '+prevBest+')',color:'rgba(200,95,135,.12)'});}
+  showHonorIcon(honorData.length>0);
 }
+function showHonorIcon(show){const el=document.getElementById('honorIcon');if(el)el.style.display=show?'flex':'none';}
+function openHonorModal(){
+  const modal=document.getElementById('honorModal');const list=document.getElementById('honorList');const empty=document.getElementById('honorEmpty');
+  if(!modal)return;
+  modal.style.display='flex';
+  if(honorData.length>0){
+    list.style.display='flex';empty.style.display='none';
+    list.innerHTML=honorData.map(h=>`<div style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:14px;background:${h.color};backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.35);transition:all .2s cubic-bezier(.34,1.56,.64,1);" onmouseenter="this.style.transform='translateY(-2px)'" onmouseleave="this.style.transform='none'"><span style="font-size:22px;">${h.icon}</span><div><div style="font-size:14px;font-weight:600;">${h.text}</div><div style="font-size:12px;color:var(--ink-soft);margin-top:2px;">${h.detail}</div></div></div>`).join('');
+  }else{list.style.display='none';empty.style.display='';}
+}
+function closeHonorModal(){document.getElementById('honorModal').style.display='none';}
 
 /* ---- trends ---- */
 document.querySelectorAll('.range-tabs button').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('.range-tabs button').forEach(x=>x.classList.remove('active'));b.classList.add('active');currentRange=parseInt(b.dataset.range);renderTrends()}));
