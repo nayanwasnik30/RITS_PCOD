@@ -116,8 +116,17 @@ let currentUser = null;
 function showError(msg){
   const el = document.getElementById('authError');
   el.textContent = msg; el.style.display = 'block';
+  document.getElementById('authSuccess').style.display = 'none';
 }
-function hideError(){ document.getElementById('authError').style.display = 'none'; }
+function showSuccess(msg){
+  const el = document.getElementById('authSuccess');
+  el.textContent = msg; el.style.display = 'block';
+  document.getElementById('authError').style.display = 'none';
+}
+function hideMessages(){
+  document.getElementById('authError').style.display = 'none';
+  document.getElementById('authSuccess').style.display = 'none';
+}
 
 function showLogin(){
   document.getElementById('loginScreen').hidden = false;
@@ -171,6 +180,22 @@ document.getElementById('signUpBtn').addEventListener('click', async ()=>{
   toast(`Account created! Welcome, ${settings.name}`);
 });
 
+// Forgot password
+document.getElementById('forgotPwBtn').addEventListener('click', async ()=>{
+  hideMessages();
+  if(!sbClient){ showError('Auth system not loaded. Please refresh the page.'); return; }
+  const email = document.getElementById('loginEmail').value.trim();
+  if(!email){ showError('Enter your email above first, then click Forgot password.'); return; }
+  const { error } = await sbClient.auth.resetPasswordForEmail(email, {
+    redirectTo: window.location.href
+  });
+  if(error){
+    showError(error.message);
+    return;
+  }
+  showSuccess('Password reset email sent! Check your inbox.');
+});
+
 // Sign out
 document.getElementById('signOut').addEventListener('click', async ()=>{
   await sbClient.auth.signOut();
@@ -180,6 +205,7 @@ document.getElementById('signOut').addEventListener('click', async ()=>{
 
 // Check session on load
 async function checkSession(){
+  if(!sbClient){ showLogin(); return false; }
   const { data: { session } } = await sbClient.auth.getSession();
   if(session && session.user){
     currentUser = session.user;
