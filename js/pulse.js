@@ -101,8 +101,10 @@ function toast(msg){
 
 /* ---------- Supabase Auth ---------- */
 const SUPABASE_URL = 'https://ujkupyimtbqzkusiefyb.supabase.co';
-const SUPABASE_KEY = 'sb_publishable_V_CERZB2-opTWvXo0NUj6w_XDMwNoJ4';
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVqa3VweWltdGJxemt1c2llZnliIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgxMTEzNDMsImV4cCI6MjEwMzY4NzM0M30.rfJEm7yu0dxuVRkYjNwikeeN7MrhKHAJW_S_Kw9TWnU';
+const { createClient } = window.supabase || {};
+const supabase = createClient ? createClient(SUPABASE_URL, SUPABASE_KEY) : null;
+if(!supabase) console.error('Supabase SDK failed to load');
 let currentUser = null;
 
 function showError(msg){
