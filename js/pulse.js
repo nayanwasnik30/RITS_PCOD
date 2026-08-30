@@ -917,6 +917,14 @@ document.getElementById('saveToday').addEventListener('click', ()=>{
 });
 
 /* ---------- Init ---------- */
+// If this is a password reset link, redirect to reset page
+(function(){
+  const hash = window.location.hash;
+  if(hash.includes('type=recovery') || hash.includes('access_token')){
+    window.location.replace('reset-password.html' + hash + window.location.search);
+    return;
+  }
+})();
 buildMealRows();
 buildStaticChips();
 buildMoodRow();
