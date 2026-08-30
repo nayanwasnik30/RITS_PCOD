@@ -94,6 +94,10 @@ function updateStepUI(){
   document.getElementById('stepNext').textContent=currentStep===STEPS.length-1?'Save ✓':'Next →';
 }
 function renderStep(){
+  // update date label
+  const dLabel=new Date(currentDate+'T00:00:00');
+  const isToday=currentDate===todayStr();
+  document.getElementById('dateLabel').textContent=dLabel.toLocaleDateString('en-IN',{weekday:'short',day:'2-digit',month:'short'})+(isToday?' · today':'');
   updateStepUI();
   STEPS[currentStep].render();
   updateCompactScore();
@@ -231,17 +235,58 @@ function updateCompactScore(){
 /* ---- trends ---- */
 document.querySelectorAll('.range-tabs button').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('.range-tabs button').forEach(x=>x.classList.remove('active'));b.classList.add('active');currentRange=parseInt(b.dataset.range);renderTrends()}));
 function makeChart(ctx,ex,cfg){if(ex){try{ex.destroy()}catch(e){}}if(!ctx)return null;try{return new Chart(ctx,cfg)}catch(e){const w=ctx.parentElement;if(w&&!w.querySelector('.chart-unavailable'))w.innerHTML='<div class="chart-unavailable">Chart unavailable.</div>';return null}}
+
 function renderTrends(){
   const days=lastNDays(currentRange),labels=days.map(d=>new Date(d+'T00:00:00').toLocaleDateString('en-IN',{day:'2-digit',month:'short'})),rows=days.map(d=>data[d]?Object.assign(emptyDay(),data[d]):null);
   const scores=rows.map(r=>r?computeScore(r):null),pt=rows.map(r=>r?(r.protein.morning+r.protein.lunch+r.protein.dinner):null),st=rows.map(r=>r?r.steps:null),sl=rows.map(r=>r?r.sleepHrs:null),wa=rows.map(r=>r?+(r.waterMl/1000).toFixed(2):null);
-  const bo={responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{display:false},ticks:{font:{family:'IBM Plex Mono',size:9}}},y:{grid:{color:'rgba(255,255,255,.15)'},ticks:{font:{family:'IBM Plex Mono',size:9}}}}};
-  try{scoreChart=makeChart(document.getElementById('chartScore'),scoreChart,{type:'line',data:{labels,datasets:[{data:scores,borderColor:'#C85F87',backgroundColor:'rgba(200,95,135,.14)',fill:true,tension:.35,spanGaps:true,pointRadius:2}]},options:Object.assign({},bo,{scales:Object.assign({},bo.scales,{y:Object.assign({},bo.scales.y,{min:0,max:100})})})})}catch(e){}
-  try{const ptgt=settings.proteinMeal*3;proteinChart=makeChart(document.getElementById('chartProtein'),proteinChart,{type:'bar',data:{labels,datasets:[{data:pt,backgroundColor:'rgba(247,184,207,.5)'},{type:'line',data:days.map(()=>ptgt),borderColor:'#D97A9A',borderDash:[4,4],pointRadius:0,borderWidth:1.5}]},options:JSON.parse(JSON.stringify(bo))})}catch(e){}
-  try{stepsChart=makeChart(document.getElementById('chartSteps'),stepsChart,{type:'bar',data:{labels,datasets:[{data:st,backgroundColor:'rgba(165,139,197,.5)'}]},options:JSON.parse(JSON.stringify(bo))})}catch(e){}
-  try{sleepChart=makeChart(document.getElementById('chartSleep'),sleepChart,{type:'bar',data:{labels,datasets:[{data:sl,backgroundColor:'rgba(212,155,189,.5)'}]},options:JSON.parse(JSON.stringify(bo))})}catch(e){}
-  try{waterChart=makeChart(document.getElementById('chartWater'),waterChart,{type:'bar',data:{labels,datasets:[{data:wa,backgroundColor:'rgba(243,168,193,.5)'}]},options:JSON.parse(JSON.stringify(bo))})}catch(e){}
+  
+  const bo={responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{display:false},ticks:{font:{family:'IBM Plex Mono',size:8},color:'rgba(63,39,52,.4)'}},y:{grid:{color:'rgba(255,255,255,.08)'},ticks:{font:{family:'IBM Plex Mono',size:8},color:'rgba(63,39,52,.4)'}}}};
+  
+  // hero stats
   const vs=scores.filter(s=>s!==null),avgS=vs.length?Math.round(vs.reduce((a,b)=>a+b,0)/vs.length):0,best=vs.length?Math.max(...vs):0,ld=rows.filter(r=>r!==null).length;
-  document.getElementById('scoreStats').innerHTML=`<div class="stat-box"><div class="n">${avgS}</div><div class="l">avg</div></div><div class="stat-box"><div class="n">${best}</div><div class="l">best</div></div><div class="stat-box"><div class="n">${ld}/${currentRange}</div><div class="l">days</div></div>`;
+  document.getElementById('statAvgNum').textContent=avgS||'—';
+  document.getElementById('statBestNum').textContent=best||'—';
+  document.getElementById('statDaysNum').textContent=ld+'/'+currentRange;
+  document.getElementById('trendScoreBadge').textContent=avgS?avgS+'/100':'—';
+  
+  // metric averages
+  const proteinAvg=pt.filter(v=>v).length?Math.round(avg(pt.filter(v=>v))):0;
+  const stepsAvg=st.filter(v=>v).length?Math.round(avg(st.filter(v=>v))):0;
+  const sleepAvg=sl.filter(v=>v).length?avg(sl.filter(v=>v)).toFixed(1):0;
+  const waterAvg=wa.filter(v=>v).length?avg(wa.filter(v=>v)).toFixed(1):0;
+  document.getElementById('metricProtein').textContent=proteinAvg+'g';
+  document.getElementById('metricSteps').textContent=stepsAvg.toLocaleString();
+  document.getElementById('metricSleep').textContent=sleepAvg+'h';
+  document.getElementById('metricWater').textContent=waterAvg+'L';
+  
+  // charts
+  try{scoreChart=makeChart(document.getElementById('chartScore'),scoreChart,{type:'line',data:{labels,datasets:[{data:scores,borderColor:'#C85F87',backgroundColor:'rgba(200,95,135,.2)',fill:true,tension:.4,spanGaps:true,pointRadius:3,pointBackgroundColor:'#C85F87',pointBorderColor:'#fff',pointBorderWidth:1}]},options:Object.assign({},bo,{scales:Object.assign({},bo.scales,{y:Object.assign({},bo.scales.y,{min:0,max:100})})})})}catch(e){}
+  try{const ptgt=settings.proteinMeal*3;proteinChart=makeChart(document.getElementById('chartProtein'),proteinChart,{type:'bar',data:{labels,datasets:[{data:pt,backgroundColor:'rgba(247,184,207,.6)',borderRadius:6,barThickness:14},{type:'line',data:days.map(()=>ptgt),borderColor:'rgba(217,122,154,.5)',borderDash:[4,4],pointRadius:0,borderWidth:1}]},options:JSON.parse(JSON.stringify(bo))})}catch(e){}
+  try{stepsChart=makeChart(document.getElementById('chartSteps'),stepsChart,{type:'bar',data:{labels,datasets:[{data:st,backgroundColor:'rgba(165,139,197,.6)',borderRadius:6,barThickness:14}]},options:JSON.parse(JSON.stringify(bo))})}catch(e){}
+  try{sleepChart=makeChart(document.getElementById('chartSleep'),sleepChart,{type:'bar',data:{labels,datasets:[{data:sl,backgroundColor:'rgba(212,155,189,.6)',borderRadius:6,barThickness:14}]},options:JSON.parse(JSON.stringify(bo))})}catch(e){}
+  try{waterChart=makeChart(document.getElementById('chartWater'),waterChart,{type:'bar',data:{labels,datasets:[{data:wa,backgroundColor:'rgba(139,138,199,.6)',borderRadius:6,barThickness:14}]},options:JSON.parse(JSON.stringify(bo))})}catch(e){}
+  
+  // achievements
+  renderAchievements(vs,ld,proteinAvg,stepsAvg,sleepAvg);
+}
+
+function renderAchievements(scores,loggedDays,proteinAvg,stepsAvg,sleepAvg){
+  const el=document.getElementById('achievements');if(!el)return;el.innerHTML='';
+  const badges=[];
+  const streak=computeStreak();
+  if(streak>=3)badges.push({icon:'🔥',label:streak+' day streak!',color:'rgba(200,95,135,.15)'});
+  if(streak>=7)badges.push({icon:'💎',label:'Week warrior',color:'rgba(168,120,184,.15)'});
+  if(streak>=14)badges.push({icon:'👑',label:'2 week legend',color:'rgba(212,154,88,.15)'});
+  const best=scores.length?Math.max(...scores):0;
+  if(best>=90)badges.push({icon:'⭐',label:'Scored 90+',color:'rgba(247,184,207,.15)'});
+  if(best===100)badges.push({icon:'💯',label:'Perfect day!',color:'rgba(182,90,123,.15)'});
+  if(proteinAvg>=settings.proteinMeal*3)badges.push({icon:'🥩',label:'Protein master',color:'rgba(247,184,207,.15)'});
+  if(stepsAvg>=settings.steps)badges.push({icon:'🏃',label:'Step crusher',color:'rgba(165,139,197,.15)'});
+  if(sleepAvg>=settings.sleepHrs)badges.push({icon:'😴',label:'Sleep champion',color:'rgba(212,155,189,.15)'});
+  if(loggedDays>=30)badges.push({icon:'📝',label:'30 days logged',color:'rgba(139,138,199,.15)'});
+  if(loggedDays>=7)badges.push({icon:'📊',label:'7 day logger',color:'rgba(200,95,135,.1)'});
+  if(!badges.length)badges.push({icon:'🌱',label:'Keep going!',color:'rgba(200,95,135,.08)'});
+  el.innerHTML=badges.map(b=>`<div style="display:flex;align-items:center;gap:6px;padding:6px 12px;border-radius:16px;background:${b.color};backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.3);font-size:12px;font-weight:500;"><span>${b.icon}</span><span>${b.label}</span></div>`).join('');
 }
 
 /* ---- insights ---- */
