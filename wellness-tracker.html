@@ -332,17 +332,6 @@ main{padding:16px 14px 8px;max-width:640px;margin:0 auto;}
       <!-- step content area -->
       <div id="stepContent"></div>
 
-      <!-- honor badge -->
-      <div id="honorBadge" style="display:none;margin-top:10px;padding:10px 14px;background:linear-gradient(135deg,rgba(212,154,88,.15),rgba(200,95,135,.1));border:1px solid rgba(212,154,88,.3);border-radius:14px;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);">
-        <div style="display:flex;align-items:center;gap:8px;">
-          <span style="font-size:20px;">🏆</span>
-          <div>
-            <div style="font-size:13px;font-weight:600;color:var(--amber);">Honor</div>
-            <div style="font-size:12px;color:var(--ink-soft);margin-top:2px;" id="honorText"></div>
-          </div>
-        </div>
-      </div>
-
       <!-- nav buttons -->
       <div style="display:flex;gap:8px;margin-top:10px;">
         <button class="pill-btn ghost" id="stepPrev" style="flex:1;">← Back</button>
@@ -350,6 +339,16 @@ main{padding:16px 14px 8px;max-width:640px;margin:0 auto;}
       </div>
 
     </div>
+
+    <!-- honor section -->
+    <div class="card" id="honorCard" style="display:none;margin-top:10px;border-left:3px solid var(--amber);">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+        <span style="font-size:22px;">🏆</span>
+        <span style="font-size:14px;font-weight:600;color:var(--amber);">Honor · Personal Bests Today</span>
+      </div>
+      <div id="honorList" style="display:flex;flex-direction:column;gap:6px;"></div>
+    </div>
+
   </section>
 
   <!-- ============ TRENDS — Gen Z card style ============ -->

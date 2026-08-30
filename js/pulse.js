@@ -256,26 +256,27 @@ function updateCompactScore(){
 
 /* ---- Honor: compare today vs all previous days ---- */
 function checkHonor(){
-  const badge=document.getElementById('honorBadge');
-  const text=document.getElementById('honorText');
-  if(!badge||!text)return;
+  const card=document.getElementById('honorCard');
+  const list=document.getElementById('honorList');
+  if(!card||!list)return;
   const today=getDay(currentDate);
   const todayDate=currentDate;
-  // get all previous days (exclude today)
   const prevDays=Object.keys(data).filter(d=>d<todayDate).map(d=>Object.assign(emptyDay(),data[d]));
-  if(prevDays.length===0){badge.style.display='none';return;}
+  if(prevDays.length===0){card.style.display='none';return;}
   const honors=[];
   const todayTotal=today.protein.morning+today.protein.lunch+today.protein.dinner;
   const prevMax=prevDays.length?Math.max(...prevDays.map(d=>d.protein.morning+d.protein.lunch+d.protein.dinner)):0;
-  if(todayTotal>0&&todayTotal>prevMax)honors.push('🥇 Best protein day ever ('+todayTotal+'g)!');
-  if(today.steps>0){const prevSteps=Math.max(...prevDays.map(d=>d.steps));if(today.steps>prevSteps)honors.push('🥇 Best step day ever ('+today.steps.toLocaleString()+')!');}
-  if(today.waterMl>0){const prevWater=Math.max(...prevDays.map(d=>d.waterMl));if(today.waterMl>prevWater)honors.push('🥇 Most hydrated day ('+((today.waterMl/1000).toFixed(1))+'L)!');}
-  if(today.sleepHrs>0){const prevSleep=Math.max(...prevDays.map(d=>d.sleepHrs));if(today.sleepHrs>prevSleep)honors.push('🥇 Best sleep day ('+today.sleepHrs+'h)!');}
-  if(today.exerciseMin>0){const prevEx=Math.max(...prevDays.map(d=>d.exerciseMin));if(today.exerciseMin>prevEx)honors.push('🥇 Most active day ('+today.exerciseMin+'min)!');}
+  if(todayTotal>0&&todayTotal>prevMax)honors.push({icon:'🥇',text:'Best protein day',detail:todayTotal+'g (prev: '+prevMax+'g)',color:'rgba(247,184,207,.15)'});
+  if(today.steps>0){const prevSteps=Math.max(...prevDays.map(d=>d.steps));if(today.steps>prevSteps)honors.push({icon:'🥇',text:'Best step day',detail:today.steps.toLocaleString()+' (prev: '+prevSteps.toLocaleString()+')',color:'rgba(165,139,197,.15)'});}
+  if(today.waterMl>0){const prevWater=Math.max(...prevDays.map(d=>d.waterMl));if(today.waterMl>prevWater)honors.push({icon:'🥇',text:'Most hydrated day',detail:(today.waterMl/1000).toFixed(1)+'L (prev: '+(prevWater/1000).toFixed(1)+'L)',color:'rgba(139,138,199,.15)'});}
+  if(today.sleepHrs>0){const prevSleep=Math.max(...prevDays.map(d=>d.sleepHrs));if(today.sleepHrs>prevSleep)honors.push({icon:'🥇',text:'Best sleep day',detail:today.sleepHrs+'h (prev: '+prevSleep+'h)',color:'rgba(212,155,189,.15)'});}
+  if(today.exerciseMin>0){const prevEx=Math.max(...prevDays.map(d=>d.exerciseMin));if(today.exerciseMin>prevEx)honors.push({icon:'🥇',text:'Most active day',detail:today.exerciseMin+'min (prev: '+prevEx+'min)',color:'rgba(212,154,88,.15)'});}
   const todayScore=computeScore(today);
-  if(todayScore!==null){const prevScores=prevDays.map(d=>computeScore(d)).filter(s=>s!==null);const prevBest=prevScores.length?Math.max(...prevScores):0;if(todayScore>prevBest)honors.push('🏆 New personal best score ('+todayScore+')!');}
-  if(honors.length>0){badge.style.display='';text.innerHTML=honors.join('<br>');}
-  else{badge.style.display='none';}
+  if(todayScore!==null){const prevScores=prevDays.map(d=>computeScore(d)).filter(s=>s!==null);const prevBest=prevScores.length?Math.max(...prevScores):0;if(todayScore>prevBest)honors.push({icon:'🏆',text:'Personal best score',detail:todayScore+'/100 (prev: '+prevBest+')',color:'rgba(200,95,135,.12)'});}
+  if(honors.length>0){
+    card.style.display='';
+    list.innerHTML=honors.map(h=>`<div style="display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:12px;background:${h.color};backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.3);"><span style="font-size:18px;">${h.icon}</span><div><div style="font-size:13px;font-weight:600;">${h.text}</div><div style="font-size:11px;color:var(--ink-soft);margin-top:1px;">${h.detail}</div></div></div>`).join('');
+  }else{card.style.display='none';}
 }
 
 /* ---- trends ---- */
