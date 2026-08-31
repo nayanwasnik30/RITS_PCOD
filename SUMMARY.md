@@ -64,7 +64,7 @@ RITS_PCOD/
 ## 🧩 Features
 
 ### 1. Today Page — Step Wizard
-Single card with 8-step navigation (no scrolling):
+Single card with 9-step navigation (no scrolling):
 
 | Step | Content | Minus | Plus |
 |------|---------|-------|------|
@@ -75,7 +75,8 @@ Single card with 8-step navigation (no scrolling):
 | 5/8 | ❤ Heart rate & Weight | manual input | manual input |
 | 6/8 | 🏃 Exercise + Type | −15m | 0m, 15m, 30m, 45m, 60m, 90m |
 | 7/8 | 🙂 Mood (emoji) + Energy (1-10 slider) | — | — |
-| 8/8 | 📝 Notes | — | — |
+| 8/9 | 🩸 Cycle (flow, pain, mood, symptoms, meds, sleep quality) | — | — |
+| 9/9 | 📝 Notes | — | — |
 
 **Key behaviors:**
 - Auto-saves on every step change (no manual save button)
@@ -179,7 +180,24 @@ Single card with 8-step navigation (no scrolling):
   "hrMax": 100,
   "weightGoal": null,
   "height": null,
-  "name": ""
+  "name": "",
+  "cycleLength": 28
+}
+```
+
+### Cycle Data (inside daily log)
+```json
+{
+  "cycle": {
+    "flow": "None|Spotting|Light|Medium|Heavy",
+    "pain": 0,
+    "mood": "Calm|Irritable|Low|Anxious|Happy|Sad|Tired|Energetic|Headache|Other",
+    "symptomSeverity": "None|Mild|Moderate|Severe|Very severe",
+    "spotting": "Yes|No",
+    "cycleType": "Period|Spotting|Expected|Late|Unusual",
+    "medicationTaken": "Yes|No",
+    "sleepQuality": "Poor|Fair|Good|Very good"
+  }
 }
 ```
 
@@ -250,6 +268,10 @@ Returns `null` if no data logged.
 - ✅ Settings with export/import
 - ✅ Authentication (Supabase)
 - ✅ Calendar navigation (fixed)
+- ✅ Cycle tracking (flow, pain, mood, symptoms, medication, cycle length)
+- ✅ Cycle summary (Day X of Y, phase, next period estimate)
+- ✅ Cycle trend charts (flow + pain over time)
+- ✅ Cycle insights (pain avg, flow pattern, medication, sleep quality)
 
 ---
 

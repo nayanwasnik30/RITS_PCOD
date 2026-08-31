@@ -428,6 +428,20 @@ main{padding:16px 14px 8px;max-width:640px;margin:0 auto;}
       </div>
     </div>
 
+    <!-- cycle trend -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+      <div class="card" style="border-left:3px solid #E783A6;">
+        <div style="font-size:12px;color:var(--ink-faint);margin-bottom:4px;">🩸 Flow</div>
+        <div style="font-family:'IBM Plex Mono';font-size:20px;font-weight:700;" id="metricCycleFlow">—</div>
+        <div class="chart-wrap" style="height:100px;"><canvas id="chartFlow"></canvas></div>
+      </div>
+      <div class="card" style="border-left:3px solid #D49A58;">
+        <div style="font-size:12px;color:var(--ink-faint);margin-bottom:4px;">🤕 Pain</div>
+        <div style="font-family:'IBM Plex Mono';font-size:20px;font-weight:700;" id="metricCyclePain">—</div>
+        <div class="chart-wrap" style="height:100px;"><canvas id="chartPain"></canvas></div>
+      </div>
+    </div>
+
     <!-- achievements -->
     <div class="card">
       <div style="font-size:14px;font-weight:600;margin-bottom:10px;">🏅 Achievements</div>
@@ -488,6 +502,7 @@ main{padding:16px 14px 8px;max-width:640px;margin:0 auto;}
         <h4>Sleep & vitals</h4>
         <div class="field-grid">
           <div class="field"><label>Sleep target (hrs)</label><input type="number" id="setSleep" value="7.5" step="0.5"></div>
+          <div class="field"><label>Cycle length (days)</label><input type="number" id="setCycleLength" value="28" min="18" max="45"></div>
           <div class="field"><label>Weight goal (kg, opt.)</label><input type="number" id="setWeightGoal" step="0.1" placeholder="optional"></div>
           <div class="field"><label>Resting HR — min</label><input type="number" id="setHrMin" value="60"></div>
           <div class="field"><label>Resting HR — max</label><input type="number" id="setHrMax" value="100"></div>

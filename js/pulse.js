@@ -6,9 +6,9 @@ console.log('Pulse v2 loaded');
 window.__PULSE_VERSION = '1.0.0008';
 
 const STORE_KEY='pulse_data_v1',SETTINGS_KEY='pulse_settings_v1';
-const DEFAULT_SETTINGS={proteinMeal:50,steps:8000,waterMl:2500,exerciseMin:30,sleepHrs:7.5,hrMin:60,hrMax:100,weightGoal:null,height:null,name:''};
+const DEFAULT_SETTINGS={proteinMeal:50,steps:8000,waterMl:2500,exerciseMin:30,sleepHrs:7.5,hrMin:60,hrMax:100,weightGoal:null,height:null,name:'',cycleLength:28};
 let settings=loadSettings(),data=loadData(),currentDate=todayStr(),currentRange=7;
-let scoreChart,proteinChart,stepsChart,sleepChart,waterChart;
+let scoreChart,proteinChart,stepsChart,sleepChart,waterChart,flowChart,painChart;
 
 /* ---- utils ---- */
 function todayStr(){return fmtDate(new Date())}
@@ -17,7 +17,7 @@ function loadSettings(){try{const r=localStorage.getItem(SETTINGS_KEY);return r?
 function saveSettingsToStore(){localStorage.setItem(SETTINGS_KEY,JSON.stringify(settings))}
 function loadData(){try{const r=localStorage.getItem(STORE_KEY);const s=r?JSON.parse(r):{};if(Object.keys(s).length)return s;const lr=localStorage.getItem('rit_pcod_data');if(!lr)return s;const legacy=JSON.parse(lr),m={};Object.values(legacy).flat().forEach(e=>{if(!e||!e.date)return;m[e.date]=Object.assign(emptyDay(),{steps:Number(e.steps)||0,waterMl:Math.round((Number(e.water)||0)*1000),sleepHrs:Number(e.sleep)||0,hr:e.hr?Number(e.hr):null,weight:e.wMorn?Number(e.wMorn):null,exerciseMin:e.exYN==='Yes'?30:0,mood:e.mood||null,energy:Number(e.energy)||6,notes:e.notes||''})});if(Object.keys(m).length){localStorage.setItem(STORE_KEY,JSON.stringify(m));return m}return s}catch(e){return{}}}
 function saveData(){localStorage.setItem(STORE_KEY,JSON.stringify(data))}
-function emptyDay(){return{protein:{morning:0,lunch:0,dinner:0},steps:0,waterMl:0,sleepHrs:0,sleepQuality:'Good',stress:'Low',hr:null,weight:null,exerciseMin:0,exerciseType:'',mood:null,energy:6,notes:''}}
+function emptyDay(){return{protein:{morning:0,lunch:0,dinner:0},steps:0,waterMl:0,sleepHrs:0,sleepQuality:'Good',stress:'Low',hr:null,weight:null,exerciseMin:0,exerciseType:'',mood:null,energy:6,notes:'',cycle:{flow:'None',pain:0,mood:null,symptomSeverity:'None',spotting:'No',cycleType:'Period',medicationTaken:'No',sleepQuality:'Poor'}}}
 function getDay(ds){if(!data[ds])data[ds]=emptyDay();data[ds]=Object.assign(emptyDay(),data[ds]);return data[ds]}
 function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),1600)}
 function avg(arr){const a=arr.filter(v=>v!==undefined&&v!==null);return a.length?a.reduce((x,y)=>x+y,0)/a.length:0}
@@ -78,6 +78,7 @@ const STEPS=[
   {id:'vitals', icon:'❤', label:'Heart & Weight', render:renderVitalsStep},
   {id:'exercise', icon:'🏃', label:'Exercise', render:renderExerciseStep},
   {id:'mood', icon:'🙂', label:'Mood & Energy', render:renderMoodStep},
+  {id:'cycle', icon:'🩸', label:'Cycle', render:renderCycleStep},
   {id:'notes', icon:'📝', label:'Notes', render:renderNotesStep}
 ];
 let currentStep=0;
@@ -228,6 +229,67 @@ function renderMoodStep(){
 window.setMood=function(v){getDay(currentDate).mood=v;saveData();renderStep()};
 window.setEnergy=function(v){document.getElementById('energyVal').textContent=v+' / 10';getDay(currentDate).energy=parseInt(v);saveData()};
 
+function getCycleInfo(){
+  const len=settings.cycleLength||28;
+  const dates=Object.keys(data).sort();
+  let lastPeriodStart=null;
+  for(let i=dates.length-1;i>=0;i--){
+    const dc=data[dates[i]];
+    if(dc&&dc.cycle&&dc.cycle.cycleType==='Period'&&dc.cycle.flow!=='None'&&dc.cycle.flow!=='Spotting'){lastPeriodStart=dates[i];break}
+  }
+  if(!lastPeriodStart)return{day:null,len:len,nextPeriod:null};
+  const today=new Date(currentDate+'T00:00:00');
+  const start=new Date(lastPeriodStart+'T00:00:00');
+  const diffMs=today-start;
+  const dayNum=Math.floor(diffMs/(1000*60*60*24))+1;
+  const nextP=new Date(start);nextP.setDate(nextP.getDate()+len);
+  const daysUntil=Math.ceil((nextP-today)/(1000*60*60*24));
+  return{day:dayNum,len:len,lastStart:lastPeriodStart,nextPeriod:fmtDate(nextP),daysUntil:daysUntil}
+}
+function renderCycleStep(){
+  const day=getDay(currentDate),c=day.cycle||emptyDay().cycle;
+  const ci=getCycleInfo();
+  const flowOptions=['None','Spotting','Light','Medium','Heavy'];
+  const flowEmojis={None:'○',Spotting:'·',Light:'🌑',Medium:'🌗',Heavy:'🌕'};
+  const painOptions=[{v:0,l:'0 None'},{v:1,l:'1 Mild'},{v:2,l:'2 Moderate'},{v:3,l:'3 Severe'},{v:4,l:'4 Very severe'}];
+  const moodOptions=[{k:'Calm',e:'😌'},{k:'Irritable',e:'😤'},{k:'Low',e:'😔'},{k:'Anxious',e:'😰'},{k:'Happy',e:'😄'},{k:'Sad',e:'😢'},{k:'Tired',e:'😴'},{k:'Energetic',e:'⚡'},{k:'Headache',e:'🤕'},{k:'Other',e:'💬'}];
+  const sevOptions=['None','Mild','Moderate','Severe','Very severe'];
+  const cycleTypeOptions=[{k:'Period',icon:'🔴'},{k:'Spotting',icon:'🟠'},{k:'Expected',icon:'🟡'},{k:'Late',icon:'🟣'},{k:'Unusual',icon:'⚪'}];
+  const sleepQOptions=['Poor','Fair','Good','Very good'];
+  const ynOptions=['Yes','No'];
+  let html='<div style="font-size:14px;font-weight:600;margin-bottom:12px;">🩸 Cycle Tracking</div>';
+  // cycle summary
+  if(ci.day!==null){
+    const phase=ci.day<=5?'Period':ci.day<=13?'Follicular':ci.day<=16?'Ovulation':'Luteal';
+    const phaseEmoji=ci.day<=5?'🔴':ci.day<=13?'🌱':ci.day<=16?'✨':'🌙';
+    html+='<div style="background:rgba(231,131,166,.12);border:1px solid rgba(255,255,255,.35);border-radius:14px;padding:12px 14px;margin-bottom:14px;display:flex;align-items:center;gap:12px;">';
+    html+='<div style="font-size:28px;">'+phaseEmoji+'</div>';
+    html+='<div><div style="font-family:\'IBM Plex Mono\';font-size:20px;font-weight:700;">Day '+ci.day+' of '+ci.len+'</div>';
+    html+='<div style="font-size:12px;color:var(--ink-soft);margin-top:2px;">'+phase+' phase'+(ci.daysUntil>0?' · Next period in ~'+ci.daysUntil+' days':' · Period expected today!')+'</div>';
+    html+='</div></div>';
+  }else{
+    html+='<div style="background:rgba(249,231,239,.3);border:1px solid rgba(255,255,255,.35);border-radius:14px;padding:12px 14px;margin-bottom:14px;font-size:13px;color:var(--ink-soft);">Select 🔴 Period + 🌕 Heavy/Medium/Light flow on your first day to start tracking your cycle.</div>';
+  }
+  html+='<div class="section-note">Flow</div>';
+  html+='<div class="chip-row">'+flowOptions.map(f=>`<button class="chip${c.flow===f?' plus':''}" onclick="setCycle('flow','${f}')">${flowEmojis[f]} ${f}</button>`).join('')+'</div>';
+  html+='<div class="section-note">Pain</div>';
+  html+='<div class="chip-row">'+painOptions.map(p=>`<button class="chip${c.pain===p.v?' plus':''}" onclick="setCycle('pain',${p.v})">${p.l}</button>`).join('')+'</div>';
+  html+='<div class="section-note">Mood</div>';
+  html+='<div class="emoji-row">'+moodOptions.map(m=>`<button class="emoji-btn${c.mood===m.k?' sel':''}" onclick="setCycle('mood','${m.k}')"><span style="font-size:20px;">${m.e}</span><span class="emoji-label">${m.k}</span></button>`).join('')+'</div>';
+  html+='<div class="section-note">Symptom Severity</div>';
+  html+='<div class="chip-row">'+sevOptions.map(s=>`<button class="chip${c.symptomSeverity===s?' plus':''}" onclick="setCycle('symptomSeverity','${s}')">${s}</button>`).join('')+'</div>';
+  html+='<div class="field-grid" style="margin-top:12px;">';
+  html+='<div class="field"><label>Spotting</label><div class="chip-row">'+ynOptions.map(y=>`<button class="chip${c.spotting===y?' plus':''}" onclick="setCycle('spotting','${y}')">${y}</button>`).join('')+'</div></div>';
+  html+='<div class="field"><label>Medication Taken</label><div class="chip-row">'+ynOptions.map(y=>`<button class="chip${c.medicationTaken===y?' plus':''}" onclick="setCycle('medicationTaken','${y}')">${y}</button>`).join('')+'</div></div>';
+  html+='</div>';
+  html+='<div class="section-note">Cycle Type</div>';
+  html+='<div class="chip-row">'+cycleTypeOptions.map(t=>`<button class="chip${c.cycleType===t.k?' plus':''}" onclick="setCycle('cycleType','${t.k}')">${t.icon} ${t.k}</button>`).join('')+'</div>';
+  html+='<div class="section-note">Sleep Quality</div>';
+  html+='<div class="chip-row">'+sleepQOptions.map(s=>`<button class="chip${c.sleepQuality===s?' plus':''}" onclick="setCycle('sleepQuality','${s}')">${s}</button>`).join('')+'</div>';
+  document.getElementById('stepContent').innerHTML=html;
+}
+window.setCycle=function(k,v){const day=getDay(currentDate);if(!day.cycle)day.cycle=emptyDay().cycle;day.cycle[k]=v;saveData();renderStep()};
+
 function renderNotesStep(){
   const day=getDay(currentDate);
   document.getElementById('stepContent').innerHTML=`
@@ -321,6 +383,20 @@ function renderTrends(){
   try{sleepChart=makeChart(document.getElementById('chartSleep'),sleepChart,{type:'bar',data:{labels,datasets:[{data:sl,backgroundColor:'rgba(212,155,189,.6)',borderRadius:6,barThickness:14}]},options:JSON.parse(JSON.stringify(bo))})}catch(e){}
   try{waterChart=makeChart(document.getElementById('chartWater'),waterChart,{type:'bar',data:{labels,datasets:[{data:wa,backgroundColor:'rgba(139,138,199,.6)',borderRadius:6,barThickness:14}]},options:JSON.parse(JSON.stringify(bo))})}catch(e){}
   
+  // cycle charts
+  const flowMap={None:0,Spotting:1,Light:2,Medium:3,Heavy:4};
+  const flowLabels={0:'None',1:'Spot',2:'Light',3:'Med',4:'Heavy'};
+  const fl=rows.map(r=>r&&r.cycle?flowMap[r.cycle.flow]??null:null);
+  const pl=rows.map(r=>r&&r.cycle?r.cycle.pain??null:null);
+  const flowVals=fl.filter(v=>v!==null);
+  const painVals=pl.filter(v=>v!==null);
+  const avgFlowStr=flowVals.length?flowLabels[Math.round(avg(flowVals))]:'—';
+  const avgPainStr=painVals.length?avg(painVals).toFixed(1)+'/4':'—';
+  document.getElementById('metricCycleFlow').textContent=avgFlowStr;
+  document.getElementById('metricCyclePain').textContent=avgPainStr;
+  try{flowChart=makeChart(document.getElementById('chartFlow'),flowChart,{type:'bar',data:{labels,datasets:[{data:fl,backgroundColor:'rgba(231,131,166,.6)',borderRadius:6,barThickness:14}]},options:Object.assign({},bo,{scales:Object.assign({},bo.scales,{y:Object.assign({},bo.scales.y,{min:0,max:4,ticks:{stepSize:1,callback:function(v){return flowLabels[v]||v},font:{family:'IBM Plex Mono',size:8},color:'rgba(63,39,52,.4)'}})})})})}catch(e){}
+  try{painChart=makeChart(document.getElementById('chartPain'),painChart,{type:'bar',data:{labels,datasets:[{data:pl,backgroundColor:'rgba(212,154,88,.6)',borderRadius:6,barThickness:14}]},options:Object.assign({},bo,{scales:Object.assign({},bo.scales,{y:Object.assign({},bo.scales.y,{min:0,max:4,ticks:{stepSize:1,font:{family:'IBM Plex Mono',size:8},color:'rgba(63,39,52,.4)'}})})})})}catch(e){}
+  
   // achievements
   renderAchievements(vs,ld,proteinAvg,stepsAvg,sleepAvg);
 }
@@ -360,6 +436,18 @@ function renderInsights(){
   ins.push({l:wPct>=100?'good':wPct>=70?'warn':'bad',t:'💧 Hydration',b:wPct>=100?'Fully hydrated!':'A couple extra glasses would help'});
   const ed=rows.filter(r=>r.exerciseMin>0).length,edPct=Math.round(ed/rows.length*100);
   ins.push({l:edPct>=70?'good':edPct>=40?'warn':'bad',t:'🏃 Active days',b:edPct>=70?'Moving most days!':'Try to move a little more often'});
+  // cycle insights
+  const cycleRows=rows.filter(r=>r.cycle);
+  if(cycleRows.length>=2){
+    const painVals2=cycleRows.map(r=>r.cycle.pain).filter(v=>v!==undefined&&v!==null);
+    if(painVals2.length){const avgPain2=avg(painVals2);ins.push({l:avgPain2<=1?'good':avgPain2<=2?'warn':'bad',t:'🤕 Pain level',b:'Avg pain: '+avgPain2.toFixed(1)+'/4'+(avgPain2>2?' — consider speaking with your doctor':'')});}
+    const flowVals2=cycleRows.map(r=>r.cycle.flow).filter(Boolean);
+    if(flowVals2.length){const flowCounts={};flowVals2.forEach(f=>{flowCounts[f]=(flowCounts[f]||0)+1});const topFlow=Object.entries(flowCounts).sort((a,b)=>b[1]-a[1])[0];ins.push({l:'good',t:'🩸 Flow pattern',b:'Most common: '+topFlow[0]+' ('+topFlow[1]+' of '+flowVals2.length+' days)'});}
+    const medTaken=cycleRows.filter(r=>r.cycle.medicationTaken==='Yes').length;
+    if(medTaken>0){ins.push({l:'good',t:'💊 Medication',b:medTaken+' of '+cycleRows.length+' days — keep it up!'});}
+    const cycleSleep=cycleRows.map(r=>r.cycle.sleepQuality).filter(Boolean);
+    if(cycleSleep.length){const bestSleep=cycleSleep.sort((a,b)=>['Poor','Fair','Good','Very good'].indexOf(b)-['Poor','Fair','Good','Very good'].indexOf(a))[0];ins.push({l:bestSleep==='Good'||bestSleep==='Very good'?'good':'warn',t:'😴 Cycle sleep',b:'Most logged quality: '+bestSleep});}
+  }
   const cm={good:'var(--good)',warn:'var(--warn)',bad:'var(--bad)'};
   ins.forEach(i=>{const d=document.createElement('div');d.className='insight-item';d.innerHTML='<div class="insight-dot" style="background:'+cm[i.l]+'"></div><div class="insight-text"><b>'+i.t+'</b><span>'+i.b+'</span></div>';list.appendChild(d)});
 }
@@ -389,14 +477,14 @@ document.getElementById('runAI').addEventListener('click',async()=>{
 });
 
 /* ---- settings ---- */
-function fillSettingsForm(){document.getElementById('setProteinMeal').value=settings.proteinMeal;document.getElementById('setProteinDay').value=settings.proteinMeal*3;document.getElementById('setSteps').value=settings.steps;document.getElementById('setWater').value=settings.waterMl;document.getElementById('setExercise').value=settings.exerciseMin;document.getElementById('setSleep').value=settings.sleepHrs;document.getElementById('setWeightGoal').value=settings.weightGoal??'';document.getElementById('setHrMin').value=settings.hrMin;document.getElementById('setHrMax').value=settings.hrMax;document.getElementById('setHeight').value=settings.height??'';document.getElementById('setName').value=settings.name||''}
+function fillSettingsForm(){document.getElementById('setProteinMeal').value=settings.proteinMeal;document.getElementById('setProteinDay').value=settings.proteinMeal*3;document.getElementById('setSteps').value=settings.steps;document.getElementById('setWater').value=settings.waterMl;document.getElementById('setExercise').value=settings.exerciseMin;document.getElementById('setSleep').value=settings.sleepHrs;document.getElementById('setWeightGoal').value=settings.weightGoal??'';document.getElementById('setHrMin').value=settings.hrMin;document.getElementById('setHrMax').value=settings.hrMax;document.getElementById('setHeight').value=settings.height??'';document.getElementById('setName').value=settings.name||'';document.getElementById('setCycleLength').value=settings.cycleLength||28}
 document.getElementById('setProteinMeal').addEventListener('input',e=>{document.getElementById('setProteinDay').value=(parseFloat(e.target.value)||0)*3});
-document.getElementById('saveSettings').addEventListener('click',()=>{settings.proteinMeal=parseFloat(document.getElementById('setProteinMeal').value)||50;settings.steps=parseInt(document.getElementById('setSteps').value)||8000;settings.waterMl=parseInt(document.getElementById('setWater').value)||2500;settings.exerciseMin=parseInt(document.getElementById('setExercise').value)||30;settings.sleepHrs=parseFloat(document.getElementById('setSleep').value)||7.5;settings.weightGoal=document.getElementById('setWeightGoal').value?parseFloat(document.getElementById('setWeightGoal').value):null;settings.hrMin=parseInt(document.getElementById('setHrMin').value)||60;settings.hrMax=parseInt(document.getElementById('setHrMax').value)||100;settings.height=document.getElementById('setHeight').value?parseFloat(document.getElementById('setHeight').value):null;settings.name=document.getElementById('setName').value||'';saveSettingsToStore();renderStep();toast('Settings saved!')});
+document.getElementById('saveSettings').addEventListener('click',()=>{settings.proteinMeal=parseFloat(document.getElementById('setProteinMeal').value)||50;settings.steps=parseInt(document.getElementById('setSteps').value)||8000;settings.waterMl=parseInt(document.getElementById('setWater').value)||2500;settings.exerciseMin=parseInt(document.getElementById('setExercise').value)||30;settings.sleepHrs=parseFloat(document.getElementById('setSleep').value)||7.5;settings.weightGoal=document.getElementById('setWeightGoal').value?parseFloat(document.getElementById('setWeightGoal').value):null;settings.hrMin=parseInt(document.getElementById('setHrMin').value)||60;settings.hrMax=parseInt(document.getElementById('setHrMax').value)||100;settings.height=document.getElementById('setHeight').value?parseFloat(document.getElementById('setHeight').value):null;settings.name=document.getElementById('setName').value||'';settings.cycleLength=parseInt(document.getElementById('setCycleLength').value)||28;saveSettingsToStore();renderStep();toast('Settings saved!')});
 
 /* ---- export/import ---- */
 function downloadBlob(b,f){const u=URL.createObjectURL(b),a=document.createElement('a');a.href=u;a.download=f;a.click();URL.revokeObjectURL(u)}
 document.getElementById('exportData').addEventListener('click',()=>downloadBlob(new Blob([JSON.stringify({settings,data},null,2)],{type:'application/json'}),'pulse-backup-'+todayStr()+'.json'));
-document.getElementById('exportCsv').addEventListener('click',()=>{const dates=Object.keys(data).sort(),h=['Date','Breakfast','Lunch','Dinner','Protein','Steps','Water','Sleep','Quality','Stress','HR','Weight','ExMin','ExType','Mood','Energy','Notes'];const rows=dates.map(d=>{const r=Object.assign(emptyDay(),data[d]);return [d,r.protein.morning,r.protein.lunch,r.protein.dinner,r.protein.morning+r.protein.lunch+r.protein.dinner,r.steps,r.waterMl,r.sleepHrs,r.sleepQuality,r.stress,r.hr??'',r.weight??'',r.exerciseMin,r.exerciseType,r.mood??'',r.energy,'"'+(r.notes||'').replace(/"/g,'""')+'"'].join(',')});downloadBlob(new Blob([[h.join(','),...rows].join('\n')],{type:'text/csv'}),'pulse-log-'+todayStr()+'.csv')});
+document.getElementById('exportCsv').addEventListener('click',()=>{const dates=Object.keys(data).sort(),h=['Date','Breakfast','Lunch','Dinner','Protein','Steps','Water','Sleep','Quality','Stress','HR','Weight','ExMin','ExType','Mood','Energy','Notes','CycleFlow','CyclePain','CycleMood','CycleSymptomSeverity','CycleSpotting','CycleType','CycleMedication','CycleSleepQuality'];const rows=dates.map(d=>{const r=Object.assign(emptyDay(),data[d]);const c=r.cycle||emptyDay().cycle;return [d,r.protein.morning,r.protein.lunch,r.protein.dinner,r.protein.morning+r.protein.lunch+r.protein.dinner,r.steps,r.waterMl,r.sleepHrs,r.sleepQuality,r.stress,r.hr??'',r.weight??'',r.exerciseMin,r.exerciseType,r.mood??'',r.energy,'"'+(r.notes||'').replace(/"/g,'""')+'"',c.flow,c.pain,c.mood??'',c.symptomSeverity,c.spotting,c.cycleType,c.medicationTaken,c.sleepQuality].join(',')});downloadBlob(new Blob([[h.join(','),...rows].join('\n')],{type:'text/csv'}),'pulse-log-'+todayStr()+'.csv')});
 document.getElementById('importFile').addEventListener('change',e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=ev=>{try{const p=JSON.parse(ev.target.result);if(p.data)data=p.data;if(p.settings)settings=Object.assign({...DEFAULT_SETTINGS},p.settings);saveData();saveSettingsToStore();renderStep();fillSettingsForm();toast('Imported!')}catch(e){toast('Failed')}};r.readAsText(f)});
 document.getElementById('wipeData').addEventListener('click',()=>{if(confirm('Erase all data?')){localStorage.removeItem(STORE_KEY);data={};renderStep();toast('Erased!')}});
 
